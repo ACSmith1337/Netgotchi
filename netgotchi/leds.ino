@@ -339,19 +339,25 @@ void handleLedCommand(String command) {
 
 // setLedRaw receives brightness value (0=off, 1023=full on).
 // COMMON_ANODE handles the inversion internally.
+// For full on/off (0 or 1023): uses digitalWrite for rock-solid 3.3V or 0V.
+// For variable brightness (animations): uses analogWrite for PWM dimming.
 void setLedRaw(int redValue, int greenValue) {
   if (COMMON_ANODE) {
-    // Common anode: LOW = ON. Invert PWM so that high brightness value = LED on more.
-    //   brightness 1023 → analogWrite(0)   → pin 100% LOW = fully on
-    //   brightness 0    → analogWrite(1023) → pin 100% HIGH = fully off
-    analogWrite(LED_RED_PIN, 1023 - redValue);
-    analogWrite(LED_GREEN_PIN, 1023 - greenValue);
+    if (redValue == 1023) digitalWrite(LED_RED_PIN, LOW);
+    else if (redValue == 0) digitalWrite(LED_RED_PIN, HIGH);
+    else analogWrite(LED_RED_PIN, 1023 - redValue);
+    
+    if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, LOW);
+    else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, HIGH);
+    else analogWrite(LED_GREEN_PIN, 1023 - greenValue);
   } else {
-    // Common cathode: HIGH = ON. PWM value maps directly.
-    //   brightness 1023 → analogWrite(1023) → pin 100% HIGH = fully on
-    //   brightness 0    → analogWrite(0)    → pin 100% LOW = fully off
-    analogWrite(LED_RED_PIN, redValue);
-    analogWrite(LED_GREEN_PIN, greenValue);
+    if (redValue == 1023) digitalWrite(LED_RED_PIN, HIGH);
+    else if (redValue == 0) digitalWrite(LED_RED_PIN, LOW);
+    else analogWrite(LED_RED_PIN, redValue);
+    
+    if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, HIGH);
+    else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, LOW);
+    else analogWrite(LED_GREEN_PIN, greenValue);
   }
 }
 
