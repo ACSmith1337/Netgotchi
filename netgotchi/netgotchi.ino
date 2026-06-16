@@ -24,7 +24,13 @@
 #include <WiFiManager.h>  // Include the WiFiManager library
 #include <Button2.h>
 
-const float VERSION = 1.65;
+#include "webpage.h"
+
+#ifdef USE_LEDS
+#include <FastLED.h>
+#endif
+
+const float VERSION = 1.66;  // LED + dashboard update
 
 //Oled Screen Selectors
 #define SCREEN_WIDTH 128
@@ -220,110 +226,6 @@ typedef struct struct_message {
 } struct_message;
 
 
-static const char PROGMEM pagehtml[] = R"rawliteral( 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Netgotchi</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            display: block;
-            height: 100%;
-            margin: 0;
-            background-color: #333;
-            color:white;
-            font-family : Helvetica
-        }
-        canvas {
-            image-rendering: pixelated; /* Ensures the pixels remain sharp when scaled */
-            zoom: 2;
-            }
-        #headless{
-          background: black;
-          font-size: 30px;
-          text-wrap: balance;
-        }
-    </style>
-</head>
-<body>
-<h1> Netgotchi </h1>
-<br>
-
-<p>Headless display<p>
-<p id="headless"></p>
-
-<p>Actual Display</p>
-<canvas id="canvas" width="128" height="64"></canvas>
-
-<p>Controls<p>
-<div class="buttons">
-        <button onclick="sendCommand('left')">Left</button>
-        <button onclick="sendCommand('right')">Right</button>
-        <button onclick="sendCommand('A')">A</button>
-        <button onclick="sendCommand('B')">B</button>
-        <br>
-        <button onclick="sendCommand('ON')">PIN ON</button>
-        <button onclick="sendCommand('OFF')">PIN OFF</button>
-        <br>
-        <button onclick="sendCommand('TIMEPLUS')">TIME+</button>
-        <button onclick="sendCommand('TIMEMINUS')">TIME-</button>
-</div>
-<p>Hosts</p>
-<button onclick="getHosts()">Get Hosts Datas</button>
-<p id="hosts"></p>
-    <script>
-        function updateCanvas() {
-            fetch('/matrix')
-                .then(response => response.json())
-                .then(matrix => {
-                    const canvas = document.getElementById('canvas');
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = 'black';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = 'white';
-                    for (let y = 0; y < matrix.length; y++) {
-                        for (let x = 0; x < matrix[y].length; x++) {
-                            if (matrix[y][x] === 1) {
-                                ctx.fillRect(x, y, 1, 1);
-                            }
-                        }
-                    }
-                });
-        }
-
-        function sendCommand(command) {
-            fetch('/command/' + command)
-                .then(response => response.text())
-                .then(data => console.log(data))
-                .catch(error => console.error('Error:', error));
-        }
-
-        function getHosts() {
-            fetch('/hosts' )
-                .then(response => response.text())
-                .then(response => document.getElementById('hosts').innerHTML= response)
-                .catch(error => console.error('Error:', error));
-        }
-         function getHeadlessStatus() {
-            fetch('/headless' )
-                .then(response => response.text())
-                .then(response => document.getElementById('headless').innerHTML= response)
-                .catch(error => console.error('Error:', error));
-        }
-
-        // Update the canvas every 2 second
-        setInterval(updateCanvas, 2000);
-
-        setInterval(getHeadlessStatus, 2000);
-
-        // Initial update
-        updateCanvas();
-    </script>
-</body></html>
-)rawliteral";
-
-
 //wrapper functions for display
 void displayPrintln(String line = "") {
   if (hasDisplay) display.println(line);
@@ -375,6 +277,9 @@ void SerialPrintLn(int message) {
 
 void setup() {
   Serial.begin(115200);
+#ifdef USE_LEDS
+  ledsInit();
+#endif
   displayInit();
   loaderSetup();
 }
@@ -420,6 +325,10 @@ void netgotchi_loop()
 {
    currentMillis = millis();
   seconds = currentMillis / 1000;
+
+#ifdef USE_LEDS
+  ledsLoop();
+#endif
 
   //main netgotchi network functionalities
   if (enableNetworkMode) networkFunctionsLoop();

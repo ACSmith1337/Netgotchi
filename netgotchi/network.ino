@@ -123,6 +123,66 @@ void networkInit()
         server.send(200, "text/plain", "Evil Twin Scan Disabled");
     });
 
+    // LED Status endpoint
+    server.on("/led/status", HTTP_GET, [](){
+#ifdef USE_LEDS
+        String json = "{\"enabled\":true,\"color\":" + getLedColorState() + ",\"name\":" + getLedColorName() + "}";
+#else
+        String json = "{\"enabled\":false,\"color\":\"#333333\",\"name\":\"Not Configured\"}";
+#endif
+        server.send(200, "application/json", json);
+    });
+
+    // LED Command endpoint - handle /led/:command
+    server.on("/led/on", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("on");
+#endif
+        server.send(200, "text/plain", "LED On");
+    });
+    server.on("/led/off", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("off");
+#endif
+        server.send(200, "text/plain", "LED Off");
+    });
+    server.on("/led/red", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("red");
+#endif
+        server.send(200, "text/plain", "LED Red");
+    });
+    server.on("/led/green", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("green");
+#endif
+        server.send(200, "text/plain", "LED Green");
+    });
+    server.on("/led/blue", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("blue");
+#endif
+        server.send(200, "text/plain", "LED Blue");
+    });
+    server.on("/led/auto", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("auto");
+#endif
+        server.send(200, "text/plain", "LED Auto");
+    });
+
+    // System info endpoint
+    server.on("/system", HTTP_GET, [](){
+        String json = "{";
+        json += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+        json += "\"uptime\":" + String(seconds) + ",";
+        json += "\"ip\":\"" + currentIP.toString() + "\",";
+        json += "\"ssid\":\"" + WiFi.SSID() + "\",";
+        json += "\"version\":\"" + String(VERSION) + "\"";
+        json += "}";
+        server.send(200, "application/json", json);
+    });
+
     server.begin();
   }
 
