@@ -38,11 +38,12 @@
 #define LED_GREEN_PIN  D5    // Leg 3 - Green anode/cathode
 #define LED_COMMON_PIN D7    // Leg 2 - Common (shared leg)
 
-// Polarity: set true if common ANODE (common = HIGH, colors = LOW)
-//           set false if common CATHODE (common = LOW, colors = HIGH)
-// Most bi-color LEDs are common anode. If one color works and the other doesn't,
-// flip this value.
-#define COMMON_ANODE   true
+// Polarity: COMMON_CATHODE (Leg 3 longest = cathode, Leg 2 = common cathode)
+// Common = LOW, colors = HIGH to light
+// (If one color works with this and the other doesn't with COMMON_ANODE true,
+//  it means the LED is common cathode — reverse-biasing green kills it completely
+//  while red can leak enough current to faintly glow)
+#define COMMON_ANODE   false
 
 // Brightness via PWM (0-1023). Lower = dimmer, higher = brighter.
 // Default 900 gives ~88% brightness — bright but not blinding.
