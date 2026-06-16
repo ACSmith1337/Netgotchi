@@ -27,15 +27,16 @@
 // SAFE PINS: D5(GPIO14), D6(GPIO12), D7(GPIO13)
 //
 // BI-COLOR LED with Leg 2 as common (shared between both colors):
-//   Leg 1 → D6 (Green control)
+//   Leg 1 → D5 (Green control) - green needs reliable PWM pin
 //   Leg 2 → D7 (Common - shared leg)
-//   Leg 3 → D5 (Red control)
+//   Leg 3 → D6 (Red control)
 //
 // Wiring confirmed: Leg1↔Leg2=Green, Leg3↔Leg2=Red
-// Leg 3 is physically longest but Leg 2 is the electrical common
+// Green on D5 (GPIO14) - known working. Red on D6 (GPIO12).
+// Green diode needs ~3V forward voltage, more picky about the drive pin.
 
-#define LED_RED_PIN    D5    // Leg 3 - Red anode/cathode
-#define LED_GREEN_PIN  D6    // Leg 1 - Green anode/cathode
+#define LED_RED_PIN    D6    // Leg 3 - Red
+#define LED_GREEN_PIN  D5    // Leg 1 - Green
 #define LED_COMMON_PIN D7    // Leg 2 - Common (shared leg)
 
 // Polarity: COMMON_CATHODE (Leg 3 longest = cathode, Leg 2 = common cathode)
