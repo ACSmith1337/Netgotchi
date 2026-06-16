@@ -4,13 +4,13 @@
 // Bi-color LED (Red/Green with shared common leg)
 // Shows: Red, Green, Amber (both), or Off
 //
-// Wiring: Connect 3 legs to any 3 digital pins on Wemos D1 Mini
-// The test sketch (/tmp/led_test/led_test.ino) tells you which pin is which.
+// Wiring: Connect 2 color legs to digital pins, common leg to GND
+// The test sketch (/tmp/led_test/led_test.ino) tells you which leg is which.
 //
 // After testing, update the pins below to match YOUR LED:
-//   - LED_RED_PIN   = the pin that makes it RED when HIGH (or LOW if common anode)
-//   - LED_GREEN_PIN = the pin that makes it GREEN when HIGH (or LOW if common anode)
-//   - LED_COMMON_PIN = the shared leg
+//   - LED_RED_PIN   = the pin that makes it RED when HIGH
+//   - LED_GREEN_PIN = the pin that makes it GREEN when HIGH
+//   - Common leg → GND (ground)
 //
 // ============================================================================
 
@@ -26,25 +26,21 @@
 //
 // SAFE PINS: D5(GPIO14), D6(GPIO12), D7(GPIO13)
 //
-// BI-COLOR LED with Leg 2 as common (shared between both colors):
-//   Leg 1 → D5 (Green control) - green needs reliable PWM pin
-//   Leg 2 → D7 (Common - shared leg)
-//   Leg 3 → D6 (Red control)
+// BI-COLOR LED - common cathode wired to GND:
+//   Leg 1 → D6 (Red control) - HIGH = on
+//   Leg 2 → GND (Common cathode - connect directly to ground)
+//   Leg 3 → D5 (Green control) - HIGH = on
 //
-// Wiring confirmed: Leg1↔Leg2=Green, Leg3↔Leg2=Red
-// Green on D5 (GPIO14) - known working. Red on D6 (GPIO12).
-// Green diode needs ~3V forward voltage, more picky about the drive pin.
+// Common cathode: connect the shared leg to GND, not a GPIO pin.
+// GPIO pins have current-sinking limits. Direct ground is reliable.
+// (Leg 2 is the electrical common - the longest leg, Leg 3, is the cathode)
 
-#define LED_RED_PIN    D6    // Leg 3 - Red
-#define LED_GREEN_PIN  D5    // Leg 1 - Green
-#define LED_COMMON_PIN D7    // Leg 2 - Common (shared leg)
+#define LED_RED_PIN    D6    // Leg 1 - Red
+#define LED_GREEN_PIN  D5    // Leg 3 - Green
+// Common cathode connected directly to GND - no GPIO needed
 
-// Polarity: COMMON_CATHODE (Leg 3 longest = cathode, Leg 2 = common cathode)
-// Common = LOW, colors = HIGH to light
-// (If one color works with this and the other doesn't with COMMON_ANODE true,
-//  it means the LED is common cathode — reverse-biasing green kills it completely
-//  while red can leak enough current to faintly glow)
-#define COMMON_ANODE   false
+// Common cathode LED: color pins HIGH = on, GND = off.
+// Simple wiring - no polarity configuration needed.
 
 // Brightness via PWM (0-1023). Lower = dimmer, higher = brighter.
 // Default 900 gives ~88% brightness — bright but not blinding.
@@ -73,13 +69,9 @@ const int GREEN_PWM_CHANNEL = 4;
 // ============================================================================
 
 void ledsInit() {
-  // Configure pins
+  // Configure color pins - common cathode is wired to GND, no GPIO needed
   pinMode(LED_RED_PIN, OUTPUT);
   pinMode(LED_GREEN_PIN, OUTPUT);
-  pinMode(LED_COMMON_PIN, OUTPUT);
-  
-  // Set common pin
-  digitalWrite(LED_COMMON_PIN, COMMON_ANODE ? HIGH : LOW);
   
   // Start with both off
   setAllOff();
@@ -87,7 +79,7 @@ void ledsInit() {
   // Boot sequence
   bootAnimation();
   
-  SerialPrintLn("Bi-color LED initialized on D6/D7/D5");
+  SerialPrintLn("Bi-color LED initialized on D6 (red) / D5 (green)");
 }
 
 void bootAnimation() {
@@ -337,28 +329,18 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// setLedRaw receives brightness value (0=off, 1023=full on).
-// COMMON_ANODE handles the inversion internally.
-// For full on/off (0 or 1023): uses digitalWrite for rock-solid 3.3V or 0V.
-// For variable brightness (animations): uses analogWrite for PWM dimming.
+// setLedRaw: common cathode wired to GND.
+// Drive color pins HIGH to light, LOW to off.
+// Full on/off (0 or 1023): digitalWrite for solid 3.3V/0V.
+// Variable brightness: analogWrite for PWM dimming.
 void setLedRaw(int redValue, int greenValue) {
-  if (COMMON_ANODE) {
-    if (redValue == 1023) digitalWrite(LED_RED_PIN, LOW);
-    else if (redValue == 0) digitalWrite(LED_RED_PIN, HIGH);
-    else analogWrite(LED_RED_PIN, 1023 - redValue);
-    
-    if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, LOW);
-    else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, HIGH);
-    else analogWrite(LED_GREEN_PIN, 1023 - greenValue);
-  } else {
-    if (redValue == 1023) digitalWrite(LED_RED_PIN, HIGH);
-    else if (redValue == 0) digitalWrite(LED_RED_PIN, LOW);
-    else analogWrite(LED_RED_PIN, redValue);
-    
-    if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, HIGH);
-    else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, LOW);
-    else analogWrite(LED_GREEN_PIN, greenValue);
-  }
+  if (redValue == 1023) digitalWrite(LED_RED_PIN, HIGH);
+  else if (redValue == 0) digitalWrite(LED_RED_PIN, LOW);
+  else analogWrite(LED_RED_PIN, redValue);
+  
+  if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, HIGH);
+  else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, LOW);
+  else analogWrite(LED_GREEN_PIN, greenValue);
 }
 
 // Helper: set red/green/both to full brightness, or off
