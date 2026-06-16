@@ -17,13 +17,20 @@
 #define USE_LEDS
 
 // --- CONFIGURE THESE AFTER RUNNING THE TEST SKETCH ---
-// Example (common cathode): Red=HIGH on D1, Green=HIGH on D2, Common=LOW on D3
-// Example (common anode):  Red=LOW on D1, Green=LOW on D2, Common=HIGH on D3
-// Adjust based on what the test sketch showed you:
+// WEMOS D1 MINI PIN RESTRICTIONS:
+//   D0=GPIO16  RELAY pin (security pin)
+//   D1=GPIO5   I2C SCL (OLED display)
+//   D2=GPIO4   I2C SDA (OLED display)
+//   D3=GPIO0   Flash button / WiFiManager (BOOT MODE!)
+//   D4=GPIO2   Built-in LED
+//
+// SAFE PINS: D5(GPIO14), D6(GPIO12), D7(GPIO13)
+//
+// Default uses D5/D6/D7 — change only if you move the LED wiring:
 
-#define LED_RED_PIN    D1    // Pin that controls RED
-#define LED_GREEN_PIN  D2    // Pin that controls GREEN  
-#define LED_COMMON_PIN D3    // Shared common pin
+#define LED_RED_PIN    D5    // Pin that controls RED
+#define LED_GREEN_PIN  D6    // Pin that controls GREEN
+#define LED_COMMON_PIN D7    // Shared common pin
 
 // Polarity: set true if common ANODE (common = HIGH, colors = LOW)
 //           set false if common CATHODE (common = LOW, colors = HIGH)
@@ -71,7 +78,7 @@ void ledsInit() {
   // Rainbow boot sequence
   bootAnimation();
   
-  SerialPrintLn("Bi-color LED initialized on D1/D2/D3");
+  SerialPrintLn("Bi-color LED initialized on D5/D6/D7");
 }
 
 void bootAnimation() {
