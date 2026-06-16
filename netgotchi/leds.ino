@@ -79,11 +79,10 @@ void ledsInit() {
   // Set common pin
   digitalWrite(LED_COMMON_PIN, COMMON_ANODE ? HIGH : LOW);
   
-  // Configure PWM for dimming on color pins
-  analogWrite(LED_RED_PIN, 0);
-  analogWrite(LED_GREEN_PIN, 0);
+  // Start with both off
+  setAllOff();
   
-  // Rainbow boot sequence
+  // Boot sequence
   bootAnimation();
   
   SerialPrintLn("Bi-color LED initialized on D5/D6/D7");
@@ -91,13 +90,13 @@ void ledsInit() {
 
 void bootAnimation() {
   // Flash red, green, amber, off
-  setLedRaw(RED_MAX(), 0);
+  setRedOn();
   delay(300);
-  setLedRaw(0, GREEN_MAX());
+  setGreenOn();
   delay(300);
-  setLedRaw(RED_MAX(), GREEN_MAX());  // Amber
+  setBothOn();  // Amber
   delay(300);
-  setLedRaw(0, 0);
+  setAllOff();
   delay(200);
   
   // Start in idle state (green)
@@ -137,28 +136,28 @@ void updateLedState() {
 void setLedColor() {
   switch (ledColorState) {
     case 0: // Idle - solid green
-      setLedRaw(0, GREEN_MAX());
+      setGreenOn();
       break;
     case 1: // Scanning - green breathing (handled in animation)
-      setLedRaw(0, GREEN_MAX());
+      setGreenOn();
       break;
     case 2: // Intrusion - red flashing (handled in animation)
-      setLedRaw(RED_MAX(), 0);
+      setRedOn();
       break;
     case 3: // Vulnerability - amber pulse (handled in animation)
-      setLedRaw(RED_MAX(), GREEN_MAX());  // Amber = both on
+      setBothOn();  // Amber = both on
       break;
     case 4: // Honeypot breach - red
-      setLedRaw(RED_MAX(), 0);
+      setRedOn();
       break;
     case 5: // Evil twin - red strobe (handled in animation)
-      setLedRaw(RED_MAX(), 0);
+      setRedOn();
       break;
     case 6: // Disconnected - off
-      setLedRaw(0, 0);
+      setAllOff();
       break;
     default:
-      setLedRaw(0, GREEN_MAX());
+      setGreenOn();
       break;
   }
 }
@@ -195,9 +194,9 @@ void ledsFlash() {
     flashStart = now;
     flashOn = !flashOn;
     if (flashOn) {
-      setLedRaw(RED_MAX(), 0);
+      setRedOn();
     } else {
-      setLedRaw(0, 0);
+      setAllOff();
     }
   }
 }
@@ -230,9 +229,9 @@ void ledsStrobe() {
     strobeStart = now;
     strobeOn = !strobeOn;
     if (strobeOn) {
-      setLedRaw(RED_MAX(), 0);
+      setRedOn();
     } else {
-      setLedRaw(0, 0);
+      setAllOff();
     }
   }
 }
@@ -302,28 +301,27 @@ String getLedColorName() {
 
 void handleLedCommand(String command) {
   if (command == "on") {
-    setLedRaw(0, GREEN_MAX());
+    setGreenOn();
     manualMode = true;
     SerialPrintLn("LED: green ON");
   } else if (command == "off") {
-    setLedRaw(0, 0);
+    setAllOff();
     manualMode = true;
     SerialPrintLn("LED: OFF");
   } else if (command == "red") {
-    setLedRaw(RED_MAX(), 0);
+    setRedOn();
     manualMode = true;
     SerialPrintLn("LED: RED");
   } else if (command == "green") {
-    setLedRaw(0, GREEN_MAX());
+    setGreenOn();
     manualMode = true;
     SerialPrintLn("LED: GREEN");
   } else if (command == "blue") {
-    // Bi-color can't do blue, show amber instead
-    setLedRaw(RED_MAX(), GREEN_MAX());
+    setBothOn();
     manualMode = true;
     SerialPrintLn("LED: AMBER (no blue on bi-color)");
   } else if (command == "amber") {
-    setLedRaw(RED_MAX(), GREEN_MAX());
+    setBothOn();
     manualMode = true;
     SerialPrintLn("LED: AMBER");
   } else if (command == "auto") {
@@ -337,24 +335,31 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-int RED_MAX() {
-  return COMMON_ANODE ? (1023 - LED_BRIGHTNESS) : LED_BRIGHTNESS;
-}
-
-int GREEN_MAX() {
-  return COMMON_ANODE ? (1023 - LED_BRIGHTNESS) : LED_BRIGHTNESS;
+int LED_ON_VALUE() {
+  // The PWM value that represents "fully on" at our brightness level.
+  // For common cathode: HIGH = ON, so value = LED_BRIGHTNESS
+  // For common anode:   LOW = ON, so value = LED_BRIGHTNESS (handled below)
+  return LED_BRIGHTNESS;
 }
 
 void setLedRaw(int redValue, int greenValue) {
   if (COMMON_ANODE) {
-    // Common anode: HIGH = off, LOW = on (inverted PWM)
+    // Common anode: pin LOW = LED ON, pin HIGH = LED OFF
+    // analogWrite PWM value is the HIGH portion. To get ON duty cycle:
+    //   PWM_value = 1023 - brightness  →  pin is LOW for (brightness/1023) of the cycle
     analogWrite(LED_RED_PIN, 1023 - redValue);
     analogWrite(LED_GREEN_PIN, 1023 - greenValue);
   } else {
-    // Common cathode: HIGH = on
+    // Common cathode: pin HIGH = LED ON
     analogWrite(LED_RED_PIN, redValue);
     analogWrite(LED_GREEN_PIN, greenValue);
   }
 }
+
+// Helper: set red or green to full brightness
+void setRedOn()  { setLedRaw(LED_ON_VALUE(), 0); }
+void setGreenOn(){ setLedRaw(0, LED_ON_VALUE()); }
+void setBothOn() { setLedRaw(LED_ON_VALUE(), LED_ON_VALUE()); }
+void setAllOff() { setLedRaw(0, 0); }
 
 #endif // USE_LEDS
