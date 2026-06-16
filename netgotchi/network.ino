@@ -158,6 +158,12 @@ void networkInit()
 #endif
         server.send(200, "text/plain", "LED Green");
     });
+    server.on("/led/amber", HTTP_GET, [](){
+#ifdef USE_LEDS
+        handleLedCommand("amber");
+#endif
+        server.send(200, "text/plain", "LED Amber");
+    });
     server.on("/led/blue", HTTP_GET, [](){
 #ifdef USE_LEDS
         handleLedCommand("blue");

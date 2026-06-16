@@ -26,9 +26,8 @@
 
 #include "webpage.h"
 
-#ifdef USE_LEDS
-#include <FastLED.h>
-#endif
+// Bi-color LED uses analogWrite() - no external library needed
+// leds.ino handles all LED control via PWM
 
 const float VERSION = 1.66;  // LED + dashboard update
 

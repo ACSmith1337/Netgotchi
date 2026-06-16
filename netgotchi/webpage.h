@@ -290,7 +290,7 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                 <span style="font-size:11px;color:#888;display:block;margin-bottom:5px;">Manual Override:</span>
                 <button class="led-btn led-btn-green" onclick="ledCommand('green')" title="Green"></button>
                 <button class="led-btn led-btn-red" onclick="ledCommand('red')" title="Red"></button>
-                <button class="led-btn led-btn-blue" onclick="ledCommand('blue')" title="Blue"></button>
+                <button class="led-btn led-btn-orange" onclick="ledCommand('amber')" title="Amber" style="background:#ffa500;"></button>
                 <button class="led-btn led-btn-off" onclick="ledCommand('off')" title="Off"></button>
                 <button class="led-btn led-btn-auto" onclick="ledCommand('auto')" title="Auto"></button>
             </div>

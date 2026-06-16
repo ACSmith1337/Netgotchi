@@ -1,80 +1,116 @@
 // ============================================================================
-// NETGOTCHI LED STATUS INDICATOR
+// NETGOTCHI BI-COLOR LED STATUS INDICATOR
 // ============================================================================
-// NeoPixel LED ring/strip for visual status feedback
-// Wire: GPIO1 (TX) -> DIN, 5V -> VCC, GND -> GND
+// Bi-color LED (Red/Green with shared common leg)
+// Shows: Red, Green, Amber (both), or Off
 //
-// Arduino IDE compiles all .ino tabs in the same folder together.
-// USE_LEDS and NUM_LEDS defined here are visible across all files.
+// Wiring: Connect 3 legs to any 3 digital pins on Wemos D1 Mini
+// The test sketch (/tmp/led_test/led_test.ino) tells you which pin is which.
 //
-// TO ENABLE LEDs:
-//   - Uncomment both #define lines below
-//   - Set NUM_LEDS to match your strip/ring count (4-16 recommended)
-//   - Install FastLED library (Library Manager -> "FastLED")
-// TO DISABLE: comment out USE_LEDS line (saves ~6KB flash)
+// After testing, update the pins below to match YOUR LED:
+//   - LED_RED_PIN   = the pin that makes it RED when HIGH (or LOW if common anode)
+//   - LED_GREEN_PIN = the pin that makes it GREEN when HIGH (or LOW if common anode)
+//   - LED_COMMON_PIN = the shared leg
+//
 // ============================================================================
 
 #define USE_LEDS
-#define NUM_LEDS 8
+
+// --- CONFIGURE THESE AFTER RUNNING THE TEST SKETCH ---
+// Example (common cathode): Red=HIGH on D1, Green=HIGH on D2, Common=LOW on D3
+// Example (common anode):  Red=LOW on D1, Green=LOW on D2, Common=HIGH on D3
+// Adjust based on what the test sketch showed you:
+
+#define LED_RED_PIN    D1    // Pin that controls RED
+#define LED_GREEN_PIN  D2    // Pin that controls GREEN  
+#define LED_COMMON_PIN D3    // Shared common pin
+
+// Polarity: set true if common ANODE (common = HIGH, colors = LOW)
+//           set false if common CATHODE (common = LOW, colors = HIGH)
+#define COMMON_ANODE   false
+
+// Brightness via PWM (0-1023). Lower = dimmer. 512 = half brightness.
+// Bi-color LEDs are very bright at 3.3V — 300-500 is usually good.
+#define LED_BRIGHTNESS 400
+
+// Update interval in milliseconds
+#define LED_UPDATE_INTERVAL 1000
+
+// ============================================================================
+// INTERNAL - DO NOT EDIT BELOW
+// ============================================================================
 
 #ifdef USE_LEDS
 
-#include <FastLED.h>
-
-#define LED_PIN 1          // GPIO1 - DMA capable, no serial needed in production
-#define LED_BRIGHTNESS 50  // 0-255, keep low to save power
-#define LED_TYPE WS2812B
-#define COLOR_ORDER GRB
-
-CRGB leds[NUM_LEDS];
-
 unsigned long previousLedMillis = 0;
-const long ledUpdateInterval = 1000;  // Update LEDs every second
-
 int ledColorState = 0;  // 0=idle, 1=scanning, 2=intrusion, 3=vulnerability, 4=honeypot, 5=evilTwin, 6=disconnected
+bool ledEnabled = true;
+bool manualMode = false;
+
+// PWM channels for dimming
+const int RED_PWM_CHANNEL = 2;
+const int GREEN_PWM_CHANNEL = 4;
 
 // ============================================================================
 // LED INITIALIZATION
 // ============================================================================
 
 void ledsInit() {
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  FastLED.setBrightness(LED_BRIGHTNESS);
-  FastLED.clear();
+  // Configure pins
+  pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_COMMON_PIN, OUTPUT);
   
-  // Rainbow boot animation
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CHS((i * 255 / NUM_LEDS) & 255, 255, 255);  // Hue cycle
-    FastLED.show();
-    delay(40);
-  }
-  FastLED.clear();
-  FastLED.show();
+  // Set common pin
+  digitalWrite(LED_COMMON_PIN, COMMON_ANODE ? HIGH : LOW);
   
-  SerialPrintLn("LEDs initialized: " + String(NUM_LEDS) + " on GPIO1");
+  // Configure PWM for dimming on color pins
+  analogWrite(LED_RED_PIN, 0);
+  analogWrite(LED_GREEN_PIN, 0);
+  
+  // Rainbow boot sequence
+  bootAnimation();
+  
+  SerialPrintLn("Bi-color LED initialized on D1/D2/D3");
+}
+
+void bootAnimation() {
+  // Flash red, green, amber, off
+  setLedRaw(RED_MAX(), 0);
+  delay(300);
+  setLedRaw(0, GREEN_MAX());
+  delay(300);
+  setLedRaw(RED_MAX(), GREEN_MAX());  // Amber
+  delay(300);
+  setLedRaw(0, 0);
+  delay(200);
+  
+  // Start in idle state (green)
+  setLedColor();
 }
 
 // ============================================================================
 // LED COLOR STATES
 // ============================================================================
 
-// Get current LED color based on Netgotchi state
 void updateLedState() {
+  if (manualMode) return;  // Don't override manual control
+  
   int newState = 0;
   
   // Priority order: most critical first
   if (honeypotTriggered) {
-    newState = 4;  // Purple - honeypot breach
+    newState = 4;   // Red - honeypot breach
   } else if (evilTwinDetected) {
-    newState = 5;  // Magenta - evil twin
+    newState = 5;   // Red - evil twin  
   } else if (vulnerabilitiesFound > 0 && startScan) {
-    newState = 3;  // Orange - vulnerability
+    newState = 3;   // Amber - vulnerability
   } else if (startScan) {
-    newState = 1;  // Blue - scanning
+    newState = 1;   // Green pulsing - scanning
   } else if (WiFi.status() != WL_CONNECTED) {
-    newState = 6;  // Dim gray - disconnected
+    newState = 6;   // Off - disconnected
   } else {
-    newState = 0;  // Green - idle/normal
+    newState = 0;   // Green solid - idle/normal
   }
   
   if (newState != ledColorState) {
@@ -83,50 +119,39 @@ void updateLedState() {
   }
 }
 
-// Set LED colors based on state
 void setLedColor() {
   switch (ledColorState) {
     case 0: // Idle - solid green
-      setAllLeds(CRGB(0, 255, 0));
+      setLedRaw(0, GREEN_MAX());
       break;
-    case 1: // Scanning - blue breathing
-      setAllLeds(CRGB(0, 100, 255));
+    case 1: // Scanning - green breathing (handled in animation)
+      setLedRaw(0, GREEN_MAX());
       break;
-    case 2: // Intrusion - red flashing
-      setAllLeds(CRGB(255, 0, 0));
+    case 2: // Intrusion - red flashing (handled in animation)
+      setLedRaw(RED_MAX(), 0);
       break;
-    case 3: // Vulnerability - orange pulse
-      setAllLeds(CRGB(255, 165, 0));
+    case 3: // Vulnerability - amber pulse (handled in animation)
+      setLedRaw(RED_MAX(), GREEN_MAX());  // Amber = both on
       break;
-    case 4: // Honeypot breach - purple
-      setAllLeds(CRGB(128, 0, 255));
+    case 4: // Honeypot breach - red
+      setLedRaw(RED_MAX(), 0);
       break;
-    case 5: // Evil twin - magenta strobe
-      setAllLeds(CRGB(255, 0, 255));
+    case 5: // Evil twin - red strobe (handled in animation)
+      setLedRaw(RED_MAX(), 0);
       break;
-    case 6: // Disconnected - dim gray
-      setAllLeds(CRGB(50, 50, 50));
+    case 6: // Disconnected - off
+      setLedRaw(0, 0);
       break;
     default:
-      setAllLeds(CRGB(0, 255, 0));
+      setLedRaw(0, GREEN_MAX());
       break;
   }
-  FastLED.show();
-}
-
-// Helper: set all LEDs to same color
-void setAllLeds(CRGB color) {
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = color;
-  }
-  FastLED.show();
 }
 
 // ============================================================================
 // LED ANIMATIONS
 // ============================================================================
 
-// Breathing animation for scanning state
 void ledsBreathing() {
   static unsigned long breathStart = 0;
   static bool breathUp = true;
@@ -137,17 +162,15 @@ void ledsBreathing() {
     breathStart = now;
     if (breathUp) {
       brightness += 3;
-      if (brightness >= 255) breathUp = false;
+      if (brightness >= 1023) breathUp = false;
     } else {
       brightness -= 3;
-      if (brightness <= 20) breathUp = true;
+      if (brightness <= 100) breathUp = true;
     }
-    FastLED.setBrightness(brightness);
-    setAllLeds(CRGB(0, 100, 255));
+    setLedRaw(0, brightness);
   }
 }
 
-// Flashing animation for critical alerts
 void ledsFlash() {
   static bool flashOn = true;
   static unsigned long flashStart = 0;
@@ -157,14 +180,32 @@ void ledsFlash() {
     flashStart = now;
     flashOn = !flashOn;
     if (flashOn) {
-      setAllLeds(CRGB(255, 0, 0));
+      setLedRaw(RED_MAX(), 0);
     } else {
-      setAllLeds(CRGB(0, 0, 0));
+      setLedRaw(0, 0);
     }
   }
 }
 
-// Strobe animation for evil twin
+void ledsPulse() {
+  static unsigned long pulseStart = 0;
+  static bool pulseUp = true;
+  static int intensity = LED_BRIGHTNESS;
+  
+  unsigned long now = millis();
+  if (now - pulseStart >= 30) {
+    pulseStart = now;
+    if (pulseUp) {
+      intensity += 5;
+      if (intensity >= 1023) pulseUp = false;
+    } else {
+      intensity -= 5;
+      if (intensity <= 200) pulseUp = true;
+    }
+    setLedRaw(intensity, intensity);  // Both on = amber
+  }
+}
+
 void ledsStrobe() {
   static bool strobeOn = true;
   static unsigned long strobeStart = 0;
@@ -174,77 +215,56 @@ void ledsStrobe() {
     strobeStart = now;
     strobeOn = !strobeOn;
     if (strobeOn) {
-      setAllLeds(CRGB(255, 0, 255));
+      setLedRaw(RED_MAX(), 0);
     } else {
-      setAllLeds(CRGB(0, 0, 0));
+      setLedRaw(0, 0);
     }
-  }
-}
-
-// Pulse animation for vulnerability
-void ledsPulse() {
-  static unsigned long pulseStart = 0;
-  static bool pulseUp = true;
-  static int intensity = 100;
-  
-  unsigned long now = millis();
-  if (now - pulseStart >= 30) {
-    pulseStart = now;
-    if (pulseUp) {
-      intensity += 5;
-      if (intensity >= 255) pulseUp = false;
-    } else {
-      intensity -= 5;
-      if (intensity <= 50) pulseUp = true;
-    }
-    CRGB color = CRGB(intensity, intensity * 0.65, 0);
-    setAllLeds(color);
   }
 }
 
 // ============================================================================
-// LED MAIN LOOP - call from netgotchi_loop()
+// LED MAIN LOOP
 // ============================================================================
 
 void ledsLoop() {
   unsigned long currentMillis = millis();
   
-  if (currentMillis - previousLedMillis >= ledUpdateInterval) {
+  if (currentMillis - previousLedMillis >= LED_UPDATE_INTERVAL) {
     previousLedMillis = currentMillis;
     updateLedState();
   }
   
-  // Run appropriate animation based on state
+  // Run animation based on state
   switch (ledColorState) {
-    case 1: // Scanning - breathe
+    case 1: // Scanning - breathe green
       ledsBreathing();
       break;
-    case 2: // Intrusion - flash
+    case 2: // Intrusion - flash red
       ledsFlash();
       break;
-    case 3: // Vulnerability - pulse
+    case 3: // Vulnerability - pulse amber
       ledsPulse();
       break;
-    case 5: // Evil twin - strobe
+    case 5: // Evil twin - strobe red
       ledsStrobe();
       break;
-    // Cases 0, 4, 6: solid color, no animation needed
+    // Cases 0, 4, 6: solid colors, no animation
   }
 }
 
 // ============================================================================
-// LED COLOR FOR WEB DASHBOARD (CSS color string)
+// WEB DASHBOARD API SUPPORT
 // ============================================================================
 
 String getLedColorState() {
   switch (ledColorState) {
     case 0: return "\"#00ff00\""; // Green
-    case 1: return "\"#0066ff\""; // Blue
+    case 1: return "\"#00ff00\""; // Green
     case 2: return "\"#ff0000\""; // Red
-    case 3: return "\"#ffa500\""; // Orange
-    case 4: return "\"#8000ff\""; // Purple
-    case 5: return "\"#ff00ff\""; // Magenta
-    case 6: return "\"#333333\""; // Gray
+    case 3: return "\"#ffa500\""; // Amber
+    case 4: return "\"#ff0000\""; // Red
+    case 5: return "\"#ff0000\""; // Red
+    case 6: return "\"#333333\""; // Off
     default: return "\"#00ff00\"";
   }
 }
@@ -262,29 +282,57 @@ String getLedColorName() {
   }
 }
 
+void handleLedCommand(String command) {
+  manualMode = (command != "auto");
+  
+  if (command == "on") {
+    setLedRaw(0, GREEN_MAX());
+    SerialPrintLn("LED: green ON");
+  } else if (command == "off") {
+    setLedRaw(0, 0);
+    SerialPrintLn("LED: OFF");
+    manualMode = false;
+  } else if (command == "red") {
+    setLedRaw(RED_MAX(), 0);
+    SerialPrintLn("LED: RED");
+  } else if (command == "green") {
+    setLedRaw(0, GREEN_MAX());
+    SerialPrintLn("LED: GREEN");
+  } else if (command == "blue") {
+    // Bi-color can't do blue, show amber instead
+    setLedRaw(RED_MAX(), GREEN_MAX());
+    SerialPrintLn("LED: AMBER (no blue on bi-color)");
+  } else if (command == "amber") {
+    setLedRaw(RED_MAX(), GREEN_MAX());
+    SerialPrintLn("LED: AMBER");
+  } else if (command == "auto") {
+    manualMode = false;
+    updateLedState();
+    SerialPrintLn("LED: auto mode");
+  }
+}
+
 // ============================================================================
-// LED CONTROL COMMANDS (for web interface)
+// LOW-LEVEL LED CONTROL
 // ============================================================================
 
-void handleLedCommand(String command) {
-  if (command == "on") {
-    setAllLeds(CRGB(0, 255, 0));
-    SerialPrintLn("LEDs: ON (green)");
-  } else if (command == "off") {
-    setAllLeds(CRGB(0, 0, 0));
-    SerialPrintLn("LEDs: OFF");
-  } else if (command == "red") {
-    setAllLeds(CRGB(255, 0, 0));
-    SerialPrintLn("LEDs: red");
-  } else if (command == "green") {
-    setAllLeds(CRGB(0, 255, 0));
-    SerialPrintLn("LEDs: green");
-  } else if (command == "blue") {
-    setAllLeds(CRGB(0, 0, 255));
-    SerialPrintLn("LEDs: blue");
-  } else if (command == "auto") {
-    updateLedState();
-    SerialPrintLn("LEDs: auto mode");
+int RED_MAX() {
+  return COMMON_ANODE ? (1023 - LED_BRIGHTNESS) : LED_BRIGHTNESS;
+}
+
+int GREEN_MAX() {
+  return COMMON_ANODE ? (1023 - LED_BRIGHTNESS) : LED_BRIGHTNESS;
+}
+
+void setLedRaw(int redValue, int greenValue) {
+  if (COMMON_ANODE) {
+    // Common anode: HIGH = off, LOW = on (inverted PWM)
+    analogWrite(LED_RED_PIN, 1023 - redValue);
+    analogWrite(LED_GREEN_PIN, 1023 - greenValue);
+  } else {
+    // Common cathode: HIGH = on
+    analogWrite(LED_RED_PIN, redValue);
+    analogWrite(LED_GREEN_PIN, greenValue);
   }
 }
 
