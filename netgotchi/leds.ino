@@ -29,9 +29,9 @@
 //           set false if common CATHODE (common = LOW, colors = HIGH)
 #define COMMON_ANODE   false
 
-// Brightness via PWM (0-1023). Lower = dimmer. 512 = half brightness.
-// Bi-color LEDs are very bright at 3.3V — 300-500 is usually good.
-#define LED_BRIGHTNESS 400
+// Brightness via PWM (0-1023). Lower = dimmer, higher = brighter.
+// Default 900 gives ~88% brightness — bright but not blinding.
+#define LED_BRIGHTNESS 900
 
 // Update interval in milliseconds
 #define LED_UPDATE_INTERVAL 1000
@@ -234,6 +234,9 @@ void ledsLoop() {
     updateLedState();
   }
   
+  // Skip animations when manual mode is active - let the manual color hold steady
+  if (manualMode) return;
+  
   // Run animation based on state
   switch (ledColorState) {
     case 1: // Scanning - breathe green
@@ -283,27 +286,30 @@ String getLedColorName() {
 }
 
 void handleLedCommand(String command) {
-  manualMode = (command != "auto");
-  
   if (command == "on") {
     setLedRaw(0, GREEN_MAX());
+    manualMode = true;
     SerialPrintLn("LED: green ON");
   } else if (command == "off") {
     setLedRaw(0, 0);
+    manualMode = true;
     SerialPrintLn("LED: OFF");
-    manualMode = false;
   } else if (command == "red") {
     setLedRaw(RED_MAX(), 0);
+    manualMode = true;
     SerialPrintLn("LED: RED");
   } else if (command == "green") {
     setLedRaw(0, GREEN_MAX());
+    manualMode = true;
     SerialPrintLn("LED: GREEN");
   } else if (command == "blue") {
     // Bi-color can't do blue, show amber instead
     setLedRaw(RED_MAX(), GREEN_MAX());
+    manualMode = true;
     SerialPrintLn("LED: AMBER (no blue on bi-color)");
   } else if (command == "amber") {
     setLedRaw(RED_MAX(), GREEN_MAX());
+    manualMode = true;
     SerialPrintLn("LED: AMBER");
   } else if (command == "auto") {
     manualMode = false;
