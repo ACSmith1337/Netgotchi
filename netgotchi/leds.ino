@@ -335,31 +335,31 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-int LED_ON_VALUE() {
-  // The PWM value that represents "fully on" at our brightness level.
-  // For common cathode: HIGH = ON, so value = LED_BRIGHTNESS
-  // For common anode:   LOW = ON, so value = LED_BRIGHTNESS (handled below)
-  return LED_BRIGHTNESS;
-}
-
+// setLedRaw receives brightness value (0=off, 1023=full on).
+// COMMON_ANODE handles the inversion internally.
 void setLedRaw(int redValue, int greenValue) {
   if (COMMON_ANODE) {
-    // Common anode: pin LOW = LED ON, pin HIGH = LED OFF
-    // analogWrite PWM value is the HIGH portion. To get ON duty cycle:
-    //   PWM_value = 1023 - brightness  →  pin is LOW for (brightness/1023) of the cycle
+    // Common anode: LOW = ON. Invert PWM so that high brightness value = LED on more.
+    //   brightness 1023 → analogWrite(0)   → pin 100% LOW = fully on
+    //   brightness 0    → analogWrite(1023) → pin 100% HIGH = fully off
     analogWrite(LED_RED_PIN, 1023 - redValue);
     analogWrite(LED_GREEN_PIN, 1023 - greenValue);
   } else {
-    // Common cathode: pin HIGH = LED ON
+    // Common cathode: HIGH = ON. PWM value maps directly.
+    //   brightness 1023 → analogWrite(1023) → pin 100% HIGH = fully on
+    //   brightness 0    → analogWrite(0)    → pin 100% LOW = fully off
     analogWrite(LED_RED_PIN, redValue);
     analogWrite(LED_GREEN_PIN, greenValue);
   }
 }
 
-// Helper: set red or green to full brightness
-void setRedOn()  { setLedRaw(LED_ON_VALUE(), 0); }
-void setGreenOn(){ setLedRaw(0, LED_ON_VALUE()); }
-void setBothOn() { setLedRaw(LED_ON_VALUE(), LED_ON_VALUE()); }
-void setAllOff() { setLedRaw(0, 0); }
+// Helper: set red/green/both to full brightness, or off
+#define LED_FULL 1023
+#define LED_OFF  0
+
+void setRedOn()   { setLedRaw(LED_FULL, LED_OFF); }
+void setGreenOn() { setLedRaw(LED_OFF, LED_FULL); }
+void setBothOn()  { setLedRaw(LED_FULL, LED_FULL); }
+void setAllOff()  { setLedRaw(LED_OFF, LED_OFF); }
 
 #endif // USE_LEDS
