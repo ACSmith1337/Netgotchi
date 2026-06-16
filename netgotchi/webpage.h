@@ -170,6 +170,7 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
         .led-btn-green { background: #0f0; }
         .led-btn-red { background: #f00; }
         .led-btn-blue { background: #00f; }
+        .led-btn-orange { background: #ffa500; }
         .led-btn-off { background: #333; }
         .led-btn-auto { background: linear-gradient(90deg,#f00,#0f0,#00f,#f0f,#0ff); }
         footer {
@@ -241,6 +242,20 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                 <span class="status-value" id="ssid">--</span>
             </div>
             <div class="status-row">
+                <span class="status-label">CPU Load</span>
+                <span class="status-value"><span id="cpuLoad">--</span></span>
+                <div style="width:100px;height:8px;background:#111;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:8px;">
+                    <div id="cpuBar" style="height:100%;width:0%;background:#0f0;border-radius:4px;transition:width 0.5s,background 0.5s;"></div>
+                </div>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Free Heap</span>
+                <span class="status-value"><span id="freeHeap">--</span></span>
+                <div style="width:100px;height:8px;background:#111;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:8px;">
+                    <div id="heapBar" style="height:100%;width:0%;background:#0f0;border-radius:4px;transition:width 0.5s,background 0.5s;"></div>
+                </div>
+            </div>
+            <div class="status-row">
                 <span class="status-label">Pin D0 Status</span>
                 <span class="status-value"><span id="pinStatus">--</span></span>
             </div>
@@ -294,6 +309,16 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                 <button class="led-btn led-btn-off" onclick="ledCommand('off')" title="Off"></button>
                 <button class="led-btn led-btn-auto" onclick="ledCommand('auto')" title="Auto"></button>
             </div>
+        <div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(0,255,65,0.2);">
+            <span style="font-size:11px;color:#888;display:block;margin-bottom:6px;">LED LEGEND:</span>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0f0;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #0f0;"></span>Idle</span><span style="font-size:10px;color:#666;">Normal</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0f0;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #0f0;opacity:0.5;"></span>Scanning</span><span style="font-size:10px;color:#666;">Breathing</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f00;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #f00;"></span>Intrusion</span><span style="font-size:10px;color:#666;">Flash</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffa500;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #ffa500;"></span>Vulnerability</span><span style="font-size:10px;color:#666;">Pulse</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f00;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #f00;"></span>Honeypot Breach</span><span style="font-size:10px;color:#666;">Solid</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffa500;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #ffa500;"></span>Evil Twin AP</span><span style="font-size:10px;color:#666;">Flash</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f00;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #f00;opacity:0.5;"></span>Disconnected</span><span style="font-size:10px;color:#666;">Slow breathe</span></div>
+        </div>
         </div>
     </div>
 
@@ -378,6 +403,20 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                     document.getElementById('uptime').textContent = d.uptime ? formatUptime(d.uptime) : '--';
                     document.getElementById('ipaddr').textContent = d.ip || '--';
                     document.getElementById('ssid').textContent = d.ssid || '--';
+                    if (d.freeHeap != null) {
+                        const kh = (d.freeHeap / 1024).toFixed(1);
+                        document.getElementById('freeHeap').textContent = kh + ' KB';
+                        const hpPct = ((d.heapSize - d.freeHeap) / d.heapSize * 100).toFixed(0);
+                        const hb = document.getElementById('heapBar');
+                        hb.style.width = hpPct + '%';
+                        hb.style.background = hpPct > 80 ? '#f00' : hpPct > 50 ? '#fa0' : '#0f0';
+                    }
+                    if (d.cpuLoad != null) {
+                        document.getElementById('cpuLoad').textContent = d.cpuLoad.toFixed(1) + '%';
+                        const cb = document.getElementById('cpuBar');
+                        cb.style.width = Math.min(d.cpuLoad, 100) + '%';
+                        cb.style.background = d.cpuLoad > 80 ? '#f00' : d.cpuLoad > 50 ? '#fa0' : '#0f0';
+                    }
                 })
                 .catch(() => {});
         }

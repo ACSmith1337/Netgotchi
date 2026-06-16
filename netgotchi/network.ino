@@ -184,7 +184,10 @@ void networkInit()
         json += "\"uptime\":" + String(seconds) + ",";
         json += "\"ip\":\"" + currentIP.toString() + "\",";
         json += "\"ssid\":\"" + WiFi.SSID() + "\",";
-        json += "\"version\":\"" + String(VERSION) + "\"";
+        json += "\"version\":\"" + String(VERSION) + "\",";
+        json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
+        json += "\"heapSize\":" + String(ESP.getHeapSize()) + ",";
+        json += "\"cpuLoad\":" + String(cpuLoad);
         json += "}";
         server.send(200, "application/json", json);
     });

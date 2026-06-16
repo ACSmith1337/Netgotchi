@@ -107,16 +107,24 @@ void updateLedState() {
   int newState = 0;
   
   // Priority order: most critical first
+  // Each state has a DISTINCT visual pattern:
+  //   0 = green solid          (normal/idle)
+  //   1 = green breathing      (scanning in progress)
+  //   2 = red fast flash       (intrusion detected)
+  //   3 = amber pulse          (vulnerabilities found)
+  //   4 = red solid            (honeypot breached)
+  //   5 = amber flash on/off   (evil twin AP detected)
+  //   6 = red slow breathing   (WiFi disconnected)
   if (honeypotTriggered) {
-    newState = 4;   // Red - honeypot breach
+    newState = 4;   // Red solid - honeypot breach
   } else if (evilTwinDetected) {
-    newState = 5;   // Red - evil twin  
+    newState = 5;   // Amber flash - evil twin AP
   } else if (vulnerabilitiesFound > 0 && startScan) {
-    newState = 3;   // Amber - vulnerability
+    newState = 3;   // Amber pulse - vulnerability active
   } else if (startScan) {
-    newState = 1;   // Green pulsing - scanning
+    newState = 1;   // Green breathing - scanning
   } else if (WiFi.status() != WL_CONNECTED) {
-    newState = 6;   // Off - disconnected
+    newState = 6;   // Red slow breathe - disconnected
   } else {
     newState = 0;   // Green solid - idle/normal
   }
@@ -141,14 +149,14 @@ void setLedColor() {
     case 3: // Vulnerability - amber pulse (handled in animation)
       setBothOn();  // Amber = both on
       break;
-    case 4: // Honeypot breach - red
+    case 4: // Honeypot breach - solid red
       setRedOn();
       break;
-    case 5: // Evil twin - red strobe (handled in animation)
-      setRedOn();
+    case 5: // Evil twin - amber flash on/off (handled in animation)
+      setBothOn();  // Amber = both on
       break;
-    case 6: // Disconnected - off
-      setAllOff();
+    case 6: // Disconnected - red slow breathing (handled in animation)
+      setRedOn();
       break;
     default:
       setGreenOn();
@@ -175,7 +183,26 @@ void ledsBreathing() {
       brightness -= 3;
       if (brightness <= LED_BRIGHTNESS) breathUp = true;
     }
-    setLedRaw(0, brightness);
+    setLedRaw(0, brightness);  // Green breathing
+  }
+}
+
+void ledsRedBreathing() {
+  static unsigned long breathStart = 0;
+  static bool breathUp = true;
+  static int brightness = LED_BRIGHTNESS;
+  
+  unsigned long now = millis();
+  if (now - breathStart >= 80) {  // Slower than green breathing
+    breathStart = now;
+    if (breathUp) {
+      brightness += 2;
+      if (brightness >= 1023) breathUp = false;
+    } else {
+      brightness -= 2;
+      if (brightness <= LED_BRIGHTNESS) breathUp = true;
+    }
+    setLedRaw(brightness, 0);  // Red breathing
   }
 }
 
@@ -230,6 +257,22 @@ void ledsStrobe() {
   }
 }
 
+void ledsAmberFlash() {
+  static bool flashOn = true;
+  static unsigned long flashStart = 0;
+  
+  unsigned long now = millis();
+  if (now - flashStart >= 250) {  // Medium-speed amber flash
+    flashStart = now;
+    flashOn = !flashOn;
+    if (flashOn) {
+      setBothOn();  // Amber
+    } else {
+      setAllOff();
+    }
+  }
+}
+
 // ============================================================================
 // LED MAIN LOOP
 // ============================================================================
@@ -250,16 +293,19 @@ void ledsLoop() {
     case 1: // Scanning - breathe green
       ledsBreathing();
       break;
-    case 2: // Intrusion - flash red
+    case 2: // Intrusion - flash red on/off
       ledsFlash();
       break;
     case 3: // Vulnerability - pulse amber
       ledsPulse();
       break;
-    case 5: // Evil twin - strobe red
-      ledsStrobe();
+    case 5: // Evil twin - amber flash on/off
+      ledsAmberFlash();
       break;
-    // Cases 0, 4, 6: solid colors, no animation
+    case 6: // Disconnected - red slow breathing
+      ledsRedBreathing();
+      break;
+    // Cases 0 (idle), 4 (honeypot): solid colors, no animation
   }
 }
 
@@ -269,27 +315,27 @@ void ledsLoop() {
 
 String getLedColorState() {
   switch (ledColorState) {
-    case 0: return "\"#00ff00\""; // Green
-    case 1: return "\"#00ff00\""; // Green
-    case 2: return "\"#ff0000\""; // Red
-    case 3: return "\"#ffa500\""; // Amber
-    case 4: return "\"#ff0000\""; // Red
-    case 5: return "\"#ff0000\""; // Red
-    case 6: return "\"#333333\""; // Off
-    default: return "\"#00ff00\"";
+    case 0: return "\\\"#00ff00\\\""; // Green - idle
+    case 1: return "\\\"#00ff00\\\""; // Green - scanning
+    case 2: return "\\\"#ff0000\\\""; // Red - intrusion
+    case 3: return "\\\"#ffa500\\\""; // Amber - vulnerability
+    case 4: return "\\\"#ff0000\\\""; // Red - honeypot
+    case 5: return "\\\"#ffa500\\\""; // Amber - evil twin
+    case 6: return "\\\"#ff0000\\\""; // Red - disconnected
+    default: return "\\\"#00ff00\\\"";
   }
 }
 
 String getLedColorName() {
   switch (ledColorState) {
-    case 0: return "\"Idle\"";
-    case 1: return "\"Scanning\"";
-    case 2: return "\"Intrusion\"";
-    case 3: return "\"Vulnerability\"";
-    case 4: return "\"Honeypot Breach\"";
-    case 5: return "\"Evil Twin\"";
-    case 6: return "\"Disconnected\"";
-    default: return "\"Idle\"";
+    case 0: return "\\\"Idle\\\"";
+    case 1: return "\\\"Scanning\\\"";
+    case 2: return "\\\"Intrusion\\\"";
+    case 3: return "\\\"Vulnerability\\\"";
+    case 4: return "\\\"Honeypot Breach\\\"";
+    case 5: return "\\\"Evil Twin AP\\\"";
+    case 6: return "\\\"WiFi Disconnected\\\"";
+    default: return "\\\"Idle\\\"";
   }
 }
 

@@ -171,6 +171,12 @@ int selectedSetting = 0;
 bool screenWireParams = false; //false for netgotchi pro and v1 
 bool evilTwinScanEnabled = true;
 
+// CPU load tracking (0-100 percent, averaged over last 10 loop iterations)
+float cpuLoad = 0.0;
+unsigned long loopStartTime = 0;
+int cpuLoadIndex = 0;
+float cpuLoadSamples[10] = {0};
+
 int settingLength = 6;
 String settings[] = { "Start AP", "Online Mode", "Airplane Mode", "Start WebInterface", "Restart", "Reset Settings" };
 
@@ -322,6 +328,7 @@ void netgotchi_setup()
 
 void netgotchi_loop()
 {
+   loopStartTime = micros();
    currentMillis = millis();
   seconds = currentMillis / 1000;
 
@@ -357,5 +364,17 @@ void netgotchi_loop()
 
   //headless infos
   if (headless) headlessInfo();
+
+  // CPU load tracking - measure loop execution time as percentage of a 100ms window
+  {
+    unsigned long loopTime = micros() - loopStartTime;
+    float load = min((float)loopTime / 1000.0, 100.0);  // microseconds to percentage of 100ms
+    cpuLoadSamples[cpuLoadIndex] = load;
+    cpuLoadIndex = (cpuLoadIndex + 1) % 10;
+    cpuLoad = 0;
+    for (int i = 0; i < 10; i++) cpuLoad += cpuLoadSamples[i];
+    cpuLoad /= 10;  // running average
+  }
+
   delay(15);
 }
