@@ -34,7 +34,9 @@
 
 // Polarity: set true if common ANODE (common = HIGH, colors = LOW)
 //           set false if common CATHODE (common = LOW, colors = HIGH)
-#define COMMON_ANODE   false
+// Most bi-color LEDs are common anode. If one color works and the other doesn't,
+// flip this value.
+#define COMMON_ANODE   true
 
 // Brightness via PWM (0-1023). Lower = dimmer, higher = brighter.
 // Default 900 gives ~88% brightness — bright but not blinding.
