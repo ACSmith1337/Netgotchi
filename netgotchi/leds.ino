@@ -59,8 +59,9 @@ int ledColorState = 0;  // 0=idle, 1=scanning, 2=intrusion, 3=vulnerability, 4=h
 bool ledEnabled = true;
 bool manualMode = false;
 
-// PWM channels for dimming
-const int RED_PWM_CHANNEL = 2;
+// PWM channels (ESP8266 analogWrite auto-maps pins to channels):
+// D5(GPIO14) → channel 6, D6(GPIO12) → channel 4
+const int RED_PWM_CHANNEL = 6;
 const int GREEN_PWM_CHANNEL = 4;
 
 // ============================================================================
@@ -328,18 +329,13 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// setLedRaw: common cathode wired to GND.
-// Drive color pins HIGH to light, LOW to off.
-// Full on/off (0 or 1023): digitalWrite for solid 3.3V/0V.
-// Variable brightness: analogWrite for PWM dimming.
+// setLedRaw: common cathode wired to GND. Drive color pins HIGH (via analogWrite) to light.
+// Uses analogWrite exclusively - mixing digitalWrite and analogWrite on ESP8266 causes
+// the pin to get stuck in PWM mode (hardware channel conflict).
+// analogWrite(1023) = full 3.3V on. analogWrite(0) = off.
 void setLedRaw(int redValue, int greenValue) {
-  if (redValue == 1023) digitalWrite(LED_RED_PIN, HIGH);
-  else if (redValue == 0) digitalWrite(LED_RED_PIN, LOW);
-  else analogWrite(LED_RED_PIN, redValue);
-  
-  if (greenValue == 1023) digitalWrite(LED_GREEN_PIN, HIGH);
-  else if (greenValue == 0) digitalWrite(LED_GREEN_PIN, LOW);
-  else analogWrite(LED_GREEN_PIN, greenValue);
+  analogWrite(LED_RED_PIN, redValue);
+  analogWrite(LED_GREEN_PIN, greenValue);
 }
 
 // Helper: set red/green/both to full brightness, or off
