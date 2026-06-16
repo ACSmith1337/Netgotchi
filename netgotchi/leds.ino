@@ -27,16 +27,15 @@
 // SAFE PINS: D5(GPIO14), D6(GPIO12), D7(GPIO13)
 //
 // BI-COLOR LED - common cathode wired to GND:
-//   Leg 1 → D6 (Red control) - HIGH = on
+//   Leg 1 → D5 (Red control) - HIGH = on
 //   Leg 2 → GND (Common cathode - connect directly to ground)
-//   Leg 3 → D5 (Green control) - HIGH = on
+//   Leg 3 → D6 (Green control) - HIGH = on
 //
 // Common cathode: connect the shared leg to GND, not a GPIO pin.
 // GPIO pins have current-sinking limits. Direct ground is reliable.
-// (Leg 2 is the electrical common - the longest leg, Leg 3, is the cathode)
 
-#define LED_RED_PIN    D6    // Leg 1 - Red
-#define LED_GREEN_PIN  D5    // Leg 3 - Green
+#define LED_RED_PIN    D5    // Leg 1 - Red
+#define LED_GREEN_PIN  D6    // Leg 3 - Green
 // Common cathode connected directly to GND - no GPIO needed
 
 // Common cathode LED: color pins HIGH = on, GND = off.
@@ -79,7 +78,7 @@ void ledsInit() {
   // Boot sequence
   bootAnimation();
   
-  SerialPrintLn("Bi-color LED initialized on D6 (red) / D5 (green)");
+  SerialPrintLn("Bi-color LED initialized on D5 (red) / D6 (green)");
 }
 
 void bootAnimation() {
@@ -173,7 +172,7 @@ void ledsBreathing() {
       if (brightness >= 1023) breathUp = false;
     } else {
       brightness -= 3;
-      if (brightness <= 100) breathUp = true;
+      if (brightness <= LED_BRIGHTNESS) breathUp = true;
     }
     setLedRaw(0, brightness);
   }
@@ -208,7 +207,7 @@ void ledsPulse() {
       if (intensity >= 1023) pulseUp = false;
     } else {
       intensity -= 5;
-      if (intensity <= 200) pulseUp = true;
+      if (intensity <= LED_BRIGHTNESS) pulseUp = true;
     }
     setLedRaw(intensity, intensity);  // Both on = amber
   }
