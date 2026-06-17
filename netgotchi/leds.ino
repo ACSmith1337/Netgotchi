@@ -110,19 +110,21 @@ void updateLedState() {
   // Each state has a DISTINCT visual pattern:
   //   0 = green solid          (normal/idle)
   //   1 = green breathing      (scanning in progress)
-  //   2 = red fast flash       (intrusion detected)
+  //   2 = red fast flash       (intrusion - new host detected)
   //   3 = amber pulse          (vulnerabilities found)
   //   4 = red solid            (honeypot breached)
   //   5 = amber flash on/off   (evil twin AP detected)
   //   6 = red slow breathing   (WiFi disconnected)
   if (honeypotTriggered) {
     newState = 4;   // Red solid - honeypot breach
+  } else if (newHostDetected && alertWindowActive) {
+    newState = 2;   // Red flash - intrusion (new host on network)
   } else if (evilTwinDetected) {
     newState = 5;   // Amber flash - evil twin AP
-  } else if (vulnerabilitiesFound > 0 && startScan) {
-    newState = 3;   // Amber pulse - vulnerability active
-  } else if (startScan) {
-    newState = 1;   // Green breathing - scanning
+  } else if (vulnerabilitiesFound > 0 && alertWindowActive) {
+    newState = 3;   // Amber pulse - vulnerabilities active
+  } else if (scanState == SCAN_SCANNING) {
+    newState = 1;   // Green breathing - scanning in progress
   } else if (WiFi.status() != WL_CONNECTED) {
     newState = 6;   // Red slow breathe - disconnected
   } else {

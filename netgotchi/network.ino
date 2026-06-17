@@ -208,10 +208,15 @@ void networkInit()
 void networkFunctionsLoop()
 {
 
-  //ping scan
+  //ping scan - three-state lifecycle: IDLE -> SCANNING -> COMPLETE -> IDLE
   if (currentMillis - previousMillisScan >= intervalScan) {
     previousMillisScan = currentMillis;
-    startScan = !startScan;
+    if (scanState == SCAN_IDLE) {
+      scanState = SCAN_SCANNING;
+      newHostDetected = false;  // Reset for new scan
+      // Copy current ips[] to previousIPs[] before scanning
+      for (int j = 0; j < max_ip; j++) previousIPs[j] = ips[j];
+    }
   }
 
   //network integrity
@@ -237,27 +242,37 @@ void networkFunctionsLoop()
   }
 
   //Ping Scan
-  if (startScan) {
-    if (i < 256) {
-      pingNetwork(i);
-      i++;
-    } else {
-      // Scan complete - recalculate totals from data
-      i = 0;
-      ipnum = 0;
-      vulnerabilitiesFound = 0;
-      
-      // Count alive hosts and vulnerable hosts
-      for (int j = 0; j < max_ip; j++) {
-        if (ips[j] == 1 || ips[j] == 2) {
-          ipnum++; // Count all alive hosts (normal + vulnerable)
+    if (scanState == SCAN_SCANNING) {
+      if (i < 256) {
+        pingNetwork(i);
+        i++;
+      } else {
+        // Scan complete - recalculate totals from data
+        i = 0;
+        ipnum = 0;
+        vulnerabilitiesFound = 0;
+
+        // Count alive hosts and vulnerable hosts, detect new hosts
+        for (int j = 0; j < max_ip; j++) {
+          if (ips[j] == 1 || ips[j] == 2) {
+            ipnum++; // Count all alive hosts (normal + vulnerable)
+            // Detect intrusion: host alive now but was dead/inactive last scan
+            if (previousIPs[j] != 1 && previousIPs[j] != 2) {
+              newHostDetected = true;
+            }
+          }
+          if (ips[j] == 2) {
+            vulnerabilitiesFound++; // Count only vulnerable hosts
+          }
         }
-        if (ips[j] == 2) {
-          vulnerabilitiesFound++; // Count only vulnerable hosts
-        }
+        // Activate alert window for post-scan results display
+        lastScanComplete = currentMillis;
+        alertWindowActive = true;
+        // Reset to IDLE so next intervalScan timer kicks off fresh scan
+        scanState = SCAN_IDLE;
+        previousMillisScan = currentMillis;
       }
     }
-  }
 
   //honeypot Checks
   ftpHoneypotScan();

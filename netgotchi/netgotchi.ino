@@ -96,9 +96,21 @@ int currentScreen = 0;
 int maxScreens = 6;
 
 int max_ip = 255;
-bool startScan = false;
+
+// Three-state scan lifecycle: IDLE -> SCANNING -> COMPLETE -> IDLE
+enum ScanState { SCAN_IDLE, SCAN_SCANNING, SCAN_COMPLETE };
+ScanState scanState = SCAN_IDLE;
 const long intervalScan = 60000 * 6;
 const long intervalPing = 60000 * 5;
+
+// Track previous scan host states for intrusion detection
+int previousIPs[256] = {};  // mirror of ips[] from last scan
+
+// Post-scan alert window: keep results visible for ALERT_TIMEOUT ms after scan
+const long alertTimeout = 180000;  // 3 minutes
+unsigned long lastScanComplete = 0;
+bool alertWindowActive = false;
+bool newHostDetected = false;  // set during scan: new host appeared since last scan
 const long intervalSound = 60000 * 2;
 const long evilTwinScanInterval = 60000 * 2;
 
@@ -374,6 +386,11 @@ void netgotchi_loop()
     cpuLoad = 0;
     for (int i = 0; i < 10; i++) cpuLoad += cpuLoadSamples[i];
     cpuLoad /= 10;  // running average
+  }
+
+  // Expire post-scan alert window
+  if (alertWindowActive && (currentMillis - lastScanComplete > alertTimeout)) {
+    alertWindowActive = false;
   }
 
   delay(15);

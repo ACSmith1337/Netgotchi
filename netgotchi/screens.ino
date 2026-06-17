@@ -215,7 +215,9 @@ void displayStats() {
   
   // Scan status indicator
   displaySetCursor(90, 55);
-  displayPrint(startScan ? "Scan" : "Idle");
+  if (scanState == SCAN_SCANNING) displayPrint("Scan");
+  else if (alertWindowActive) displayPrint("Alert");
+  else displayPrint("Idle");
 }
 
 void netgotchi_face() {
