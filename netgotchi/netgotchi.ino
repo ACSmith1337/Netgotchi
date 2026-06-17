@@ -68,8 +68,13 @@ ESP8266WebServer server(80);
 
 FtpServer ftpSrv;  // Create an instance of the FTP server
 
-const int NUM_STARS = 100;
-float stars[NUM_STARS][3];
+const int NUM_STARS = 40;
+// Use int16_t instead of float — saves 1.2KB → 240B (6x reduction)
+// Values are fixed-point: x,y in [-1000,1000], z in [1,1000]
+struct Star {
+  int16_t x, y, z;
+};
+Star stars[NUM_STARS];
 float ufoX = SCREEN_WIDTH / 2;
 float ufoY = SCREEN_HEIGHT / 2;
 float ufoZ = 0;
@@ -104,7 +109,7 @@ const long intervalScan = 60000 * 6;
 const long intervalPing = 60000 * 5;
 
 // Track previous scan host states for intrusion detection
-int previousIPs[256] = {};  // mirror of ips[] from last scan
+int previousIPs[255] = {};  // mirror of ips[] from last scan — same size
 
 // Post-scan alert window: keep results visible for ALERT_TIMEOUT ms after scan
 const long alertTimeout = 180000;  // 3 minutes
@@ -183,11 +188,12 @@ int selectedSetting = 0;
 bool screenWireParams = false; //false for netgotchi pro and v1 
 bool evilTwinScanEnabled = true;
 
-// CPU load tracking (0-100 percent, averaged over last 10 loop iterations)
-float cpuLoad = 0.0;
+// CPU load tracking (0-1000 = 0.0-100.0 percent, averaged over last 10 loops)
+// Integer math — no float division on ESP8266
+int cpuLoad = 0;           // 0-1000 (tenths of percent)
 unsigned long loopStartTime = 0;
 int cpuLoadIndex = 0;
-float cpuLoadSamples[10] = {0};
+int cpuLoadSamples[10] = {0};
 
 int settingLength = 6;
 String settings[] = { "Start AP", "Online Mode", "Airplane Mode", "Start WebInterface", "Restart", "Reset Settings" };
@@ -198,8 +204,8 @@ struct Service {
 };
 
 // Structure to track vulnerable hosts and their open ports
-#define MAX_VULNERABLE_HOSTS 20
-#define MAX_OPEN_PORTS 8
+#define MAX_VULNERABLE_HOSTS 10   // was 20 — 80% heap reduction on String arrays
+#define MAX_OPEN_PORTS 4          // was 8 — top 4 ports only
 
 struct VulnerableHost {
   IPAddress ip;
@@ -377,10 +383,11 @@ void netgotchi_loop()
   //headless infos
   if (headless) headlessInfo();
 
-  // CPU load tracking - measure loop execution time as percentage of a 100ms window
+  // CPU load tracking — integer math, percentage of 100ms window (x10 for tenths)
   {
     unsigned long loopTime = micros() - loopStartTime;
-    float load = min((float)loopTime / 1000.0, 100.0);  // microseconds to percentage of 100ms
+    int load = (int)(loopTime * 10 / 1000);  // microseconds → tenths of percent of 100ms
+    if (load > 1000) load = 1000;
     cpuLoadSamples[cpuLoadIndex] = load;
     cpuLoadIndex = (cpuLoadIndex + 1) % 10;
     cpuLoad = 0;

@@ -84,11 +84,9 @@ void drawSpace() {
   }
   
   displayDisplay();
-  delay(1);
 }
 
 void displayRippleSpace() {
-  displayClearDisplay();
   drawRipple();
   netgotchi_face();
   
@@ -101,7 +99,6 @@ void displayRippleSpace() {
   }
   
   displayDisplay();
-  delay(1);
 }
 
 // ============================================================================
@@ -111,23 +108,23 @@ void displayRippleSpace() {
 // Starfield Animation
 void initStars() {
   for (int i = 0; i < NUM_STARS; i++) {
-    stars[i][0] = random(-1000, 1000); // X position
-    stars[i][1] = random(-1000, 1000); // Y position
-    stars[i][2] = random(1, 1000);     // Z depth
+    stars[i].x = random(-1000, 1000);
+    stars[i].y = random(-1000, 1000);
+    stars[i].z = random(1, 1000);
   }
 }
 
 void updateAndDrawStars() {
   for (int i = 0; i < NUM_STARS; i++) {
     // Move star towards viewer
-    stars[i][2] -= 5;
-    if (stars[i][2] <= 0) {
-      stars[i][2] = 1000; // Reset to back
+    stars[i].z -= 5;
+    if (stars[i].z <= 0) {
+      stars[i].z = 1000;
     }
     
-    // 3D projection to 2D screen
-    int x = (stars[i][0] / stars[i][2]) * 64 + SCREEN_WIDTH / 2;
-    int y = (stars[i][1] / stars[i][2]) * 32 + SCREEN_HEIGHT / 2;
+    // 3D projection to 2D screen (fixed-point math, no float div)
+    int x = (stars[i].x * 64 / stars[i].z) + SCREEN_WIDTH / 2;
+    int y = (stars[i].y * 32 / stars[i].z) + SCREEN_HEIGHT / 2;
     
     // Draw star if within screen bounds
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
@@ -150,16 +147,20 @@ void drawUFO() {
   ufoY = SCREEN_HEIGHT / 2 + cos(millis() / 1500.0) * 10;
 }
 
-// Ripple Animation
+// Ripple Animation — non-blocking
 int frame = 0;
 int numCircles = 10;
 int maxRadius = 70;
 
 void drawRipple() {
+  static unsigned long lastFrame = 0;
+  if (millis() - lastFrame < 100) return;  // Cap at 10fps
+  lastFrame = millis();
+  
+  displayClearDisplay();
   int radius = (frame * 10) % maxRadius;
   displayDrawCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, radius, 1);
   frame++;
-  delay(100);
 }
 
 // ============================================================================
@@ -311,49 +312,93 @@ void displayNetgotchiStats() {
 }
 
 void displayIPS() {
-  displayClearDisplay();
-  displaySetCursor(0, 0);
-  displayPrintln("Found Hosts:");
+  static unsigned long lastUpdate = 0;
+  static int scanIndex = 0;
+  static int pageRows = 0;
+  static bool scanning = true;
+  static String cachedPrefix = "";
   
-  if (ipnum > 0) {
-    String ipprefix = String(currentIP[0]) + "." 
-                    + String(currentIP[1]) + "." 
-                    + String(currentIP[2]) + ".";
+  displayClearDisplay();
+  
+  if (ipnum == 0) {
+    // Reset state
+    scanIndex = 0;
+    pageRows = 0;
+    scanning = true;
+    nextScreen();
+    return;
+  }
+  
+  // Build prefix once
+  if (cachedPrefix == "") {
+    cachedPrefix = String(currentIP[0]) + "." + String(currentIP[1]) + "." + String(currentIP[2]) + ".";
+  }
+  
+  // Non-blocking: show one IP every 500ms, or resume after summary pause
+  if (millis() - lastUpdate >= 500) {
+    if (pageRows == 5) {
+      // Summary pause done — resume scanning
+      displayClearDisplay();
+      displaySetCursor(0, 0);
+      displayPrintln("Found Hosts:");
+      pageRows = 0;
+      scanning = true;
+      lastUpdate = millis();
+      displayDisplay();
+      return;
+    }
     
-    for (int j = 0; j < max_ip; j++) {
-      // Check if IP has a status
-      if (ips[j] == 1 || ips[j] == -1 || ips[j] == 2) {
-        
-        // Screen is full, clear and show total
-        if (iprows >= 4) {
-          displayClearDisplay();
-          displaySetCursor(5, 0);
-          displayPrintln("Hosts:" + String(ipnum));
-          iprows = 0;
-        }
-        
-        displaySetCursor(0, 20 + (iprows) * 10);
-        
-        // Display IP status
-        String status = "";
-        if (ips[j] == 1) {
-          status = ipprefix + String(j) + " UP";
-        } else if (ips[j] == 2) {
-          status = ipprefix + String(j) + " WRNG!";
-        } else if (ips[j] == -1) {
-          status = ipprefix + String(j) + " DOWN";
-        }
-        
-        displayPrintln(status);
-        iprows++;
-        
-        delay(500);
-        if (iprows == 4) delay(1000);
-        displayDisplay();
+    if (!scanning) return;
+    
+    // Find next host with a status
+    bool found = false;
+    while (scanIndex < 255) {
+      scanIndex++;
+      if (ips[scanIndex] == 1 || ips[scanIndex] == -1 || ips[scanIndex] == 2) {
+        found = true;
+        break;
       }
     }
-  } else {
-    nextScreen(); // No hosts found, skip screen
+    
+    if (found) {
+      // Screen full — show summary then continue
+      if (pageRows >= 4) {
+        displayClearDisplay();
+        displaySetCursor(5, 0);
+        displayPrintln("Hosts:" + String(ipnum));
+        displayDisplay();
+        // Non-blocking pause — next update triggers clear+continue
+        lastUpdate = millis();  // Reset timer for 1s pause
+        scanning = false;
+        pageRows = 5;  // Signal: showing summary
+        return;
+      }
+      
+      displaySetCursor(0, 20 + pageRows * 10);
+      
+      if (ips[scanIndex] == 1) {
+        displayPrintln(cachedPrefix + String(scanIndex) + " UP");
+      } else if (ips[scanIndex] == 2) {
+        displayPrintln(cachedPrefix + String(scanIndex) + " WRNG!");
+      } else {
+        displayPrintln(cachedPrefix + String(scanIndex) + " DOWN");
+      }
+      pageRows++;
+      displayDisplay();
+    } else {
+      // Done scanning
+      scanning = false;
+      scanIndex = 0;
+      pageRows = 0;
+      cachedPrefix = "";
+    }
+  }
+  
+  // If not yet started, show header immediately
+  if (pageRows == 0 && millis() - lastUpdate < 100) {
+    displaySetCursor(0, 0);
+    displayPrintln("Found Hosts:");
+    displayDisplay();
   }
 }
 
@@ -489,21 +534,17 @@ int getPixelAt(int x, int y) {
 }
 
 String getPixelMatrix() {
-  // Generate JSON matrix of all pixels (for web interface)
-  String matrix = "[";
+  // Send raw display buffer as hex — 1024 bytes → 2048 chars
+  // Much smaller than JSON array (~16KB). JS decodes back to pixels.
+  uint8_t* buffer = displayGetBuffer();
+  if (!buffer) return "[]";
   
-  for (int y = 0; y < SCREEN_HEIGHT; y++) {
-    if (y > 0) matrix += ",";
-    matrix += "[";
-    
-    for (int x = 0; x < SCREEN_WIDTH; x++) {
-      if (x > 0) matrix += ",";
-      matrix += getPixelAt(x, y);
-    }
-    
-    matrix += "]";
+  String hex = "\"";
+  const char hexChars[] = "0123456789abcdef";
+  for (int i = 0; i < SCREEN_WIDTH * (SCREEN_HEIGHT / 8); i++) {
+    hex += hexChars[buffer[i] >> 4];
+    hex += hexChars[buffer[i] & 0x0F];
   }
-  
-  matrix += "]";
-  return matrix;
+  hex += "\"";
+  return hex;
 }

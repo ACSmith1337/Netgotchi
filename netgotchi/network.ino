@@ -187,7 +187,7 @@ void networkInit()
         json += "\"version\":\"" + String(VERSION) + "\",";
         json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
         json += "\"heapSize\":" + String(ESP.getHeapSize()) + ",";
-        json += "\"cpuLoad\":" + String(cpuLoad);
+        json += "\"cpuLoad\":" + String(cpuLoad / 10.0);
         json += "}";
         server.send(200, "application/json", json);
     });
@@ -310,17 +310,21 @@ void pingNetwork(int i) {
 
 bool detectEvilTwin() {
   int numNetworks = WiFi.scanNetworks();
-  int ssid_count = 0;
   bool currentEvilTwinStatus = false;
-
-  for (int i = 0; i < numNetworks; i++) {
-    String ssid = WiFi.SSID(i);
-
-    if (ssid == knownNetworks[0].ssid) {
+  
+  // Check ALL known networks, not just index 0
+  for (int k = 0; k < numKnownNetworks; k++) {
+    int ssid_count = 0;
+    for (int i = 0; i < numNetworks; i++) {
+      if (WiFi.SSID(i) == knownNetworks[k].ssid) {
         ssid_count++;
+      }
+    }
+    if (ssid_count > 1) {
+      currentEvilTwinStatus = true;
+      break;
     }
   }
-  if (ssid_count> 1 ) currentEvilTwinStatus = true;
 
   if (currentEvilTwinStatus != evilTwinDetected) {
     if (currentEvilTwinStatus) {
@@ -413,26 +417,29 @@ void ftpHoneypotScan() {
 }
 
 void handleRoot() {
-  server.send(200, "text/html", pagehtml);
+  // send_P streams directly from PROGMEM — avoids 23KB heap copy that crashes ESP8266
+  server.send_P(200, "text/html", pagehtml);
 }
 
 void handleCommand(String command) {
-    if (command == "left") {
-       handleButtons(BTN_LEFT);
-    } else if (command == "right") {
-       handleButtons(BTN_RIGHT);
-    } else if (command == "A") {
-       handleButtons(BTN_A);
-    } else if (command == "B") {
-       handleButtons(BTN_A);
-    }
+   if (command == "left") {
+      handleButtons(BTN_LEFT);
+   } else if (command == "right") {
+      handleButtons(BTN_RIGHT);
+   } else if (command == "A") {
+      handleButtons(BTN_A);
+   } else if (command == "B") {
+      handleButtons(BTN_B);
+   }
 }
 
 void saveCurrentNetworkInfos()
 {
-  // Initialize known networks
+  // Initialize known networks with current connection data
   numKnownNetworks = 1;
   knownNetworks[0].ssid = WiFi.SSID();
+  knownNetworks[0].bssid = WiFi.BSSIDstr();
+  knownNetworks[0].rssi = WiFi.RSSI();
 }
 
 

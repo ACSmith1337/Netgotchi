@@ -338,15 +338,25 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
         function updateCanvas() {
             fetch('/matrix')
                 .then(r => r.json())
-                .then(matrix => {
+                .then(hexStr => {
                     const c = document.getElementById('canvas');
                     const ctx = c.getContext('2d');
                     ctx.fillStyle = 'black';
                     ctx.fillRect(0, 0, c.width, c.height);
                     ctx.fillStyle = 'white';
-                    for (let y = 0; y < matrix.length; y++)
-                        for (let x = 0; x < matrix[y].length; x++)
-                            if (matrix[y][x] === 1) ctx.fillRect(x, y, 1, 1);
+                    // Decode hex-encoded display buffer back to pixels
+                    if (!hexStr || hexStr.length < 4) return;
+                    const bytes = [];
+                    for (let i = 1; i < hexStr.length - 1; i += 2)
+                        bytes.push(parseInt(hexStr.substr(i, 2), 16));
+                    for (let y = 0; y < 64; y++) {
+                        const byteIdx = (y >> 3) * 128;
+                        const bit = y & 7;
+                        for (let x = 0; x < 128; x++) {
+                            if (bytes[byteIdx + x] & (1 << bit))
+                                ctx.fillRect(x, y, 1, 1);
+                        }
+                    }
                 })
                 .catch(() => {});
         }
