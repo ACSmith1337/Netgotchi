@@ -14,7 +14,9 @@
 //
 // ============================================================================
 
-#define USE_LEDS
+// USE_LEDS is defined in netgotchi.ino (main sketch) for Arduino IDE tab compilation.
+// Do NOT move the #define here — Arduino IDE only propagates preprocessor directives
+// from the main .ino to other tabs, not the reverse.
 
 // --- CONFIGURE THESE AFTER RUNNING THE TEST SKETCH ---
 // WEMOS D1 MINI PIN RESTRICTIONS:

@@ -28,6 +28,10 @@
 
 // Bi-color LED uses analogWrite() - no external library needed
 // leds.ino handles all LED control via PWM
+// NOTE: #define USE_LEDS must be here (main sketch) for Arduino IDE tab compilation.
+// Arduino IDE only copies preprocessor directives from the main .ino to other tabs,
+// NOT the reverse. So #ifdef USE_LEDS in this file won't see a define from leds.ino.
+#define USE_LEDS
 
 const float VERSION = 1.66;  // LED + dashboard update
 
