@@ -416,10 +416,12 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                     if (d.freeHeap != null) {
                         const kh = (d.freeHeap / 1024).toFixed(1);
                         document.getElementById('freeHeap').textContent = kh + ' KB';
-                        const hpPct = ((d.heapSize - d.freeHeap) / d.heapSize * 100).toFixed(0);
-                        const hb = document.getElementById('heapBar');
-                        hb.style.width = hpPct + '%';
-                        hb.style.background = hpPct > 80 ? '#f00' : hpPct > 50 ? '#fa0' : '#0f0';
+                        if (d.heapSize != null && d.heapSize > 0) {
+                            const hpPct = ((d.heapSize - d.freeHeap) / d.heapSize * 100).toFixed(0);
+                            const hb = document.getElementById('heapBar');
+                            hb.style.width = hpPct + '%';
+                            hb.style.background = hpPct > 80 ? '#f00' : hpPct > 50 ? '#fa0' : '#0f0';
+                        }
                     }
                     if (d.cpuLoad != null) {
                         document.getElementById('cpuLoad').textContent = d.cpuLoad.toFixed(1) + '%';
