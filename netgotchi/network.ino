@@ -126,7 +126,7 @@ void networkInit()
     // LED Status endpoint
     server.on("/led/status", HTTP_GET, [](){
 #ifdef USE_LEDS
-        String json = "{\"enabled\":true,\"color\":" + getLedColorState() + ",\"name\":" + getLedColorName() + "}";
+        String json = "{\"enabled\":true,\"color\":\"" + getLedColorState() + "\",\"name\":\"" + getLedColorName() + "\"}";
 #else
         String json = "{\"enabled\":false,\"color\":\"#333333\",\"name\":\"Not Configured\"}";
 #endif

@@ -140,8 +140,12 @@ void updateLedState() {
     newState = 0;   // Green solid - idle/normal
   }
   
+  Serial.printf("[LED] updateState: old=%d new=%d (wifi=%d scan=%d honeypot=%d evil=%d vuln=%d alert=%d newHost=%d)\n",
+    ledColorState, newState, WiFi.status(), scanState, honeypotTriggered, evilTwinDetected, vulnerabilitiesFound, alertWindowActive, newHostDetected);
+  
   if (newState != ledColorState) {
     ledColorState = newState;
+    Serial.printf("[LED] state changed to %d -> setLedColor()\n", newState);
     setLedColor();
   }
 }
@@ -291,6 +295,16 @@ void ledsAmberFlash() {
 void ledsLoop() {
   unsigned long currentMillis = millis();
   
+  // Force LED refresh on first call - ESP8266 PWM channels can be
+  // silently reset by display.begin() or WiFi init between boot animation
+  // and the first ledsLoop() call.
+  static bool firstRun = true;
+  if (firstRun) {
+    firstRun = false;
+    setLedColor();  // Re-establish PWM after display/WiFi init
+    Serial.println("[LED] First loop - refreshing PWM");
+  }
+  
   if (currentMillis - previousLedMillis >= LED_UPDATE_INTERVAL) {
     previousLedMillis = currentMillis;
     updateLedState();
@@ -324,29 +338,32 @@ void ledsLoop() {
 // WEB DASHBOARD API SUPPORT
 // ============================================================================
 
+// JSON helpers — return plain values, the endpoint template adds JSON quotes.
+// Do NOT add escaped quotes here; the browser JSON parser would include literal
+// quote chars in the parsed string, breaking CSS color values.
 String getLedColorState() {
   switch (ledColorState) {
-    case 0: return "\\\"#00ff00\\\""; // Green - idle
-    case 1: return "\\\"#00ff00\\\""; // Green - scanning
-    case 2: return "\\\"#ff0000\\\""; // Red - intrusion
-    case 3: return "\\\"#ffa500\\\""; // Amber - vulnerability
-    case 4: return "\\\"#ff0000\\\""; // Red - honeypot
-    case 5: return "\\\"#ffa500\\\""; // Amber - evil twin
-    case 6: return "\\\"#ff0000\\\""; // Red - disconnected
-    default: return "\\\"#00ff00\\\"";
+    case 0: return "#00ff00"; // Green - idle
+    case 1: return "#00ff00"; // Green - scanning
+    case 2: return "#ff0000"; // Red - intrusion
+    case 3: return "#ffa500"; // Amber - vulnerability
+    case 4: return "#ff0000"; // Red - honeypot
+    case 5: return "#ffa500"; // Amber - evil twin
+    case 6: return "#ff0000"; // Red - disconnected
+    default: return "#00ff00";
   }
 }
 
 String getLedColorName() {
   switch (ledColorState) {
-    case 0: return "\\\"Idle\\\"";
-    case 1: return "\\\"Scanning\\\"";
-    case 2: return "\\\"Intrusion\\\"";
-    case 3: return "\\\"Vulnerability\\\"";
-    case 4: return "\\\"Honeypot Breach\\\"";
-    case 5: return "\\\"Evil Twin AP\\\"";
-    case 6: return "\\\"WiFi Disconnected\\\"";
-    default: return "\\\"Idle\\\"";
+    case 0: return "Idle";
+    case 1: return "Scanning";
+    case 2: return "Intrusion";
+    case 3: return "Vulnerability";
+    case 4: return "Honeypot Breach";
+    case 5: return "Evil Twin AP";
+    case 6: return "WiFi Disconnected";
+    default: return "Idle";
   }
 }
 
