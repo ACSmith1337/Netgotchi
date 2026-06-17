@@ -71,6 +71,7 @@ const int GREEN_PWM_CHANNEL = 4;
 // ============================================================================
 
 void ledsInit() {
+  Serial.println("[LED] Initializing...");
   // Configure color pins - common cathode is wired to GND, no GPIO needed
   pinMode(LED_RED_PIN, OUTPUT);
   pinMode(LED_GREEN_PIN, OUTPUT);
@@ -81,21 +82,27 @@ void ledsInit() {
   // Boot sequence
   bootAnimation();
   
+  Serial.println("[LED] Boot animation done, LED should be GREEN (idle)");
   SerialPrintLn("Bi-color LED initialized on D5 (red) / D6 (green)");
 }
 
 void bootAnimation() {
   // Flash red, green, amber, off
+  Serial.println("[LED] Boot: RED");
   setRedOn();
   delay(300);
+  Serial.println("[LED] Boot: GREEN");
   setGreenOn();
   delay(300);
+  Serial.println("[LED] Boot: AMBER");
   setBothOn();  // Amber
   delay(300);
+  Serial.println("[LED] Boot: OFF");
   setAllOff();
   delay(200);
   
   // Start in idle state (green)
+  Serial.println("[LED] Boot: setting idle GREEN");
   setLedColor();
 }
 
@@ -386,6 +393,9 @@ void handleLedCommand(String command) {
 void setLedRaw(int redValue, int greenValue) {
   analogWrite(LED_RED_PIN, redValue);
   analogWrite(LED_GREEN_PIN, greenValue);
+  if (redValue || greenValue) {
+    Serial.printf("[LED] setRaw R=%d G=%d\n", redValue, greenValue);
+  }
 }
 
 // Helper: set red/green/both to full brightness, or off

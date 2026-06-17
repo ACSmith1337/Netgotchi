@@ -265,7 +265,7 @@ void bmo_drawFace() {
       displayDrawRect(rightEyeX, eyeY + (EYE_HEIGHT - eyeHeight)/2, EYE_WIDTH, eyeHeight, 1);
       // Add double border for cuter look
       displayDrawRect(leftEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeHeight+2, 1);
-      displayDrawRect(rightEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeheight+2, 1);
+      displayDrawRect(rightEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeHeight+2, 1);
     } else {
       // Fully closed - draw thick lines
       displayFillRect(leftEyeX-1, eyeY + EYE_HEIGHT/2 - 1, EYE_WIDTH+2, 3, 1);
