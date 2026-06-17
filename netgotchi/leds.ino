@@ -44,8 +44,11 @@
 // Simple wiring - no polarity configuration needed.
 
 // Brightness via PWM (0-1023). Lower = dimmer, higher = brighter.
-// Default 900 gives ~88% brightness — bright but not blinding.
-#define LED_BRIGHTNESS 900
+// Green diode has a ~3V forward voltage threshold — ESP8266 PWM at 1kHz
+// needs high duty cycle to reliably drive it. Floor at 980 (~96%) keeps
+// green bright during breathing animation while still showing pulse effect.
+// Red diode is lower threshold so it stays visible even at lower values.
+#define LED_BRIGHTNESS 980
 
 // Update interval in milliseconds
 #define LED_UPDATE_INTERVAL 1000
@@ -297,12 +300,18 @@ void ledsLoop() {
   
   // Force LED refresh on first call - ESP8266 PWM channels can be
   // silently reset by display.begin() or WiFi init between boot animation
-  // and the first ledsLoop() call.
+  // and the first ledsLoop() call. Re-initialize PWM frequency to ensure
+  // the green LED (which has a ~3V forward voltage threshold) gets driven
+  // hard enough on the first cycle.
   static bool firstRun = true;
   if (firstRun) {
     firstRun = false;
-    setLedColor();  // Re-establish PWM after display/WiFi init
-    Serial.println("[LED] First loop - refreshing PWM");
+    // Re-init PWM frequency and force full brightness on both channels
+    analogWriteFreq(1000);
+    setLedRaw(LED_FULL, LED_FULL);
+    delay(50);
+    setLedColor();
+    Serial.println("[LED] First loop - re-initialized PWM");
   }
   
   if (currentMillis - previousLedMillis >= LED_UPDATE_INTERVAL) {
