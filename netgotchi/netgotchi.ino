@@ -232,6 +232,8 @@ Service dangerousServices[] = {
 #define MAX_NETWORKS 10
 typedef struct {
   String ssid;
+  String bssid;
+  int rssi;
 } NetworkInfo;
 
 NetworkInfo knownNetworks[MAX_NETWORKS];

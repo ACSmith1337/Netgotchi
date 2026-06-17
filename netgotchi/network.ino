@@ -406,12 +406,14 @@ void ftpHoneypotScan() {
   #if defined(ESP8266)
     if (ftpSrv.returnHoneypotStatus()) {
       honeypotTriggered = true;
-      delay(500);
+      if (millis() - previousMillisSoundAlert < 500) return;  // non-blocking 500ms debounce
+      previousMillisSoundAlert = millis();
     }
   #else
     if (ftpSrv.isClientConnected()) {
       honeypotTriggered = true;
-      delay(500);
+      if (millis() - previousMillisSoundAlert < 500) return;  // non-blocking 500ms debounce
+      previousMillisSoundAlert = millis();
     }
   #endif
 }
