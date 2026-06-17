@@ -115,7 +115,8 @@ void sendMessage(const String &msg) {
 }
 
 void OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len) {
-  display.clearDisplay();  // Clear the display
+  // OnDataRecv callback - use wrapper functions to respect hasDisplay guard
+  displayClearDisplay();  // Clear the display
   textreceivedMessage = "";  // Reset the received message
   memcpy(&myData, incomingData, sizeof(myData));
   textreceivedMessage = String(myData.text);
@@ -125,34 +126,33 @@ void OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len) {
 }
 
 void updateDisplay() {
-  display.clearDisplay();
+  displayClearDisplay();
   // Display received and sent messages at the top
-  display.setTextSize(1);
-  display.setCursor(5, 5);
-  display.print("TEXTGOTCHI " + face + "" + textgotchistatus);
-  display.setCursor(0, 15);
-  display.print("Recv: ");
-  display.println(textreceivedMessage);
-  display.print("Sent: ");
-  display.println(textmessage);
+  displaySetSize(1);
+  displaySetCursor(5, 5);
+  displayPrint("TEXTGOTCHI " + face + "" + textgotchistatus);
+  displaySetCursor(0, 15);
+  displayPrint("Recv: ");
+  displayPrintln(textreceivedMessage);
+  displayPrint("Sent: ");
+  displayPrintln(textmessage);
   int secago=(millis() - previousMessageRecTime )/1000;
-  display.setCursor(60, 55);
-  display.print(" ("+String(secago) + "s ago)");
+  displaySetCursor(60, 55);
+  displayPrint(" ("+String(secago) + "s ago)");
 
   // Display keyboard at the bottom
-
   for (int i = 0; i < sizeof(keyboard_chars) - 1; i++) {
     if (i == selected_keyboard_index) {
-      display.setTextColor(0, 1);  // Highlight selected character
+      displaySetTextColor(0, 1);  // Highlight selected character (inverted)
     } else {
-      display.setTextColor(1);
+      displaySetTextColor(1);
     }
     int yOffset = (i < 26) ? SCREEN_HEIGHT - 20 : SCREEN_HEIGHT - 10;  // Adjust y position for second line
     int xOffset = (i % 26) * 5;  // Adjust x position based on character index
-    display.setCursor(xOffset, yOffset);
-    display.print(keyboard_chars[i]);
+    displaySetCursor(xOffset, yOffset);
+    displayPrint(String(keyboard_chars[i]));
   }
-  display.display();
+  displayDisplay();
 }
 
 void handleSerialInput() {

@@ -207,7 +207,7 @@ void crtlgotchi_sendMessage(const String &msg) {
 }
 
 void crtlgotchi_OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len) {
-  display.clearDisplay();  // Clear the display
+  displayClearDisplay();  // Clear the display - wrapper respects hasDisplay
   ctrlmessage = "";  // Reset the received message
   memcpy(&ctrlmyData, incomingData, sizeof(ctrlmyData));
   ctrlmessage = String(ctrlmyData.text);
@@ -219,56 +219,56 @@ void crtlgotchi_OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len) {
 }
 
 void crtlgotchi_updateDisplay() {
-  display.clearDisplay();
+  displayClearDisplay();
   // Display received and sent messages at the top
-  display.setTextSize(1);
-  display.setCursor(0, 5);
-  display.print("CTRLGOTCHI " + ctrlface + "" + ctrlstatus);
-  display.setCursor(0, 15);
-  display.print("PIN D0 CONTROL :");
-  display.println(ctrlmessage);
-  display.println(" ");
+  displaySetSize(1);
+  displaySetCursor(0, 5);
+  displayPrint("CTRLGOTCHI " + ctrlface + "" + ctrlstatus);
+  displaySetCursor(0, 15);
+  displayPrint("PIN D0 CONTROL :");
+  displayPrintln(ctrlmessage);
+  displayPrintln(" ");
   displayPrintln(command[ctrlselectedMode]);
-  display.println(" ");
+  displayPrintln(" ");
 
    if(ctrlselectedMode == 0)
     {
-      display.println("D0 Control enabled ");
+      displayPrintln("D0 Control enabled ");
     }
     if(ctrlselectedMode == 1)
     {
-      display.println("Press A to send ON/OFF");
+      displayPrintln("Press A to send ON/OFF");
     }
     if(ctrlselectedMode == 2)
     {
-      display.println("Press A to enable D0");
+      displayPrintln("Press A to enable D0");
     }
     if(ctrlselectedMode == 3)
     {
-      display.println("Press A to disable D0");
+      displayPrintln("Press A to disable D0");
     }
     if(ctrlselectedMode == 4)
     {
-      display.println("D0 timer - 1min");
+      displayPrintln("D0 timer - 1min");
     }
     if(ctrlselectedMode == 5)
     {
-      display.println("D0 timer - 15min");
+      displayPrintln("D0 timer - 15min");
     }
     if(ctrlselectedMode == 6)
     {
-      display.println("D0 timer - 1h");
+      displayPrintln("D0 timer - 1h");
     }
     if(ctrlselectedMode == 7)
     {
-      display.println("D0 timer - 8h");
+      displayPrintln("D0 timer - 8h");
     }
     if(ctrlselectedMode == 8)
     {
-      display.println("ALERT each hour");
+      displayPrintln("ALERT each hour");
     }
   
-  display.display();
+  displayDisplay();
 }
 
 

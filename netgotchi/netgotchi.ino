@@ -50,7 +50,7 @@ const float VERSION = 1.66;  // LED + dashboard update
 #define BTN_A 2
 #define BTN_B 0
 //#define BUZZER_PIN 15 //for netgotchi pro
-#define BUZZER_PIN 13 //for netgotchis v2
+#define BUZZER_PIN 13 //for netgotchis v2 — NOTE: same pin as BTN_RIGHT (D7/GPIO13). Safe because hasControlsButtons=false and no buzzer is wired on Wemos D1 Mini. If enabling hasControlsButtons=true, move BUZZER_PIN to an unused GPIO.
 #define EXT_PIN_16 16  // D0 on pro
 
 #if oled_type_ssd1305
@@ -274,6 +274,9 @@ void displaySetSize(int size) {
 void displaySetTextColor(int color) {
   if (hasDisplay) display.setTextColor(color);
 }
+void displaySetTextColor(int fg, int bg) {
+  if (hasDisplay) display.setTextColor(fg, bg);
+}
 void displayPrintDate(const char* format, int day, int month, int year) {
   if (hasDisplay) display.printf(format, day, month, year);
 }
@@ -288,6 +291,12 @@ void displayDrawCircle(uint16_t x, uint16_t y, uint16_t radius, uint16_t color) 
 }
 void displayDrawPixel(uint16_t x, uint16_t y, uint16_t color) {
   if (hasDisplay) display.drawPixel(x, y, color);
+}
+void displayDrawRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
+  if (hasDisplay) display.drawRect(x, y, w, h, color);
+}
+void displayFillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
+  if (hasDisplay) display.fillRect(x, y, w, h, color);
 }
 
 
@@ -309,6 +318,8 @@ void setup() {
 #ifdef USE_LEDS
   ledsInit();
 #endif
+  // displayInit() here initializes OLED before the loader menu renders.
+  // Individual mode setup() functions do NOT need to call it again.
   displayInit();
   loaderSetup();
 }
@@ -328,9 +339,8 @@ void headlessInfo() {
 
 void netgotchi_setup()
 {
-  
-  displayInit();
-  
+  // displayInit() already called in setup() before the loader renders.
+  // No need to re-initialize here.
   // Initialize vulnerable hosts array
   for (int i = 0; i < MAX_VULNERABLE_HOSTS; i++) {
     vulnerableHosts[i].active = false;

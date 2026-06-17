@@ -94,13 +94,13 @@ void bmoBButtonPressed(Button2 &btn) {
 void bmogotchi_setup() {
   // Show intro
   displayClearDisplay();
-  display.setTextSize(2);
-  display.setCursor(20, 15);
-  display.println("BMO!");
-  display.setTextSize(1);
-  display.setCursor(5, 40);
-  display.println("Hello friend :)");
-  display.display();
+  displaySetSize(2);
+  displaySetCursor(20, 15);
+  displayPrintln("BMO!");
+  displaySetSize(1);
+  displaySetCursor(5, 40);
+  displayPrintln("Hello friend :)");
+  displayDisplay();
   delay(2000);
   
   // Initialize random seed
@@ -261,22 +261,22 @@ void bmo_drawFace() {
     int eyeHeight = max(2, EYE_HEIGHT - closeAmount);
     
     if (eyeHeight > 2) {
-      display.drawRect(leftEyeX, eyeY + (EYE_HEIGHT - eyeHeight)/2, EYE_WIDTH, eyeHeight, 1);
-      display.drawRect(rightEyeX, eyeY + (EYE_HEIGHT - eyeHeight)/2, EYE_WIDTH, eyeHeight, 1);
+      displayDrawRect(leftEyeX, eyeY + (EYE_HEIGHT - eyeHeight)/2, EYE_WIDTH, eyeHeight, 1);
+      displayDrawRect(rightEyeX, eyeY + (EYE_HEIGHT - eyeHeight)/2, EYE_WIDTH, eyeHeight, 1);
       // Add double border for cuter look
-      display.drawRect(leftEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeHeight+2, 1);
-      display.drawRect(rightEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeHeight+2, 1);
+      displayDrawRect(leftEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeHeight+2, 1);
+      displayDrawRect(rightEyeX-1, eyeY + (EYE_HEIGHT - eyeHeight)/2 - 1, EYE_WIDTH+2, eyeheight+2, 1);
     } else {
       // Fully closed - draw thick lines
-      display.fillRect(leftEyeX-1, eyeY + EYE_HEIGHT/2 - 1, EYE_WIDTH+2, 3, 1);
-      display.fillRect(rightEyeX-1, eyeY + EYE_HEIGHT/2 - 1, EYE_WIDTH+2, 3, 1);
+      displayFillRect(leftEyeX-1, eyeY + EYE_HEIGHT/2 - 1, EYE_WIDTH+2, 3, 1);
+      displayFillRect(rightEyeX-1, eyeY + EYE_HEIGHT/2 - 1, EYE_WIDTH+2, 3, 1);
     }
   } else {
     // Draw open square eyes (BMO style) with double border for cuter look
-    display.drawRect(leftEyeX, eyeY, EYE_WIDTH, EYE_HEIGHT, 1);
-    display.drawRect(leftEyeX-1, eyeY-1, EYE_WIDTH+2, EYE_HEIGHT+2, 1);
-    display.drawRect(rightEyeX, eyeY, EYE_WIDTH, EYE_HEIGHT, 1);
-    display.drawRect(rightEyeX-1, eyeY-1, EYE_WIDTH+2, EYE_HEIGHT+2, 1);
+    displayDrawRect(leftEyeX, eyeY, EYE_WIDTH, EYE_HEIGHT, 1);
+    displayDrawRect(leftEyeX-1, eyeY-1, EYE_WIDTH+2, EYE_HEIGHT+2, 1);
+    displayDrawRect(rightEyeX, eyeY, EYE_WIDTH, EYE_HEIGHT, 1);
+    displayDrawRect(rightEyeX-1, eyeY-1, EYE_WIDTH+2, EYE_HEIGHT+2, 1);
     
     // Draw square pupils with offset for looking around
     int pupilLeftX = leftEyeX + (EYE_WIDTH - PUPIL_SIZE)/2 + bmoEyeLeftX;
@@ -284,14 +284,14 @@ void bmo_drawFace() {
     int pupilRightX = rightEyeX + (EYE_WIDTH - PUPIL_SIZE)/2 + bmoEyeRightX;
     int pupilRightY = eyeY + (EYE_HEIGHT - PUPIL_SIZE)/2 + bmoEyeRightY;
     
-    display.fillRect(pupilLeftX, pupilLeftY, PUPIL_SIZE, PUPIL_SIZE, 1);
-    display.fillRect(pupilRightX, pupilRightY, PUPIL_SIZE, PUPIL_SIZE, 1);
+    displayFillRect(pupilLeftX, pupilLeftY, PUPIL_SIZE, PUPIL_SIZE, 1);
+    displayFillRect(pupilRightX, pupilRightY, PUPIL_SIZE, PUPIL_SIZE, 1);
   }
   
   // Draw mouth
   bmo_drawMouth();
   
-  display.display();
+  displayDisplay();
 }
 
 void bmo_drawMouth() {
@@ -302,19 +302,19 @@ void bmo_drawMouth() {
     // Closed mouth - rectangular/geometric shapes (thicker for better visibility)
     if (bmoMouthCurve > 0) {
       // Smile - angled rectangles forming a smile
-      display.fillRect(mouthX, mouthY, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
-      display.fillRect(mouthX + MOUTH_WIDTH/2 + 1, mouthY - 3, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX, mouthY, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX + MOUTH_WIDTH/2 + 1, mouthY - 3, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
       // Add middle segment for smooth curve
-      display.fillRect(mouthX + MOUTH_WIDTH/2 - 2, mouthY - 1, 4, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX + MOUTH_WIDTH/2 - 2, mouthY - 1, 4, MOUTH_HEIGHT, 1);
     } else if (bmoMouthCurve < 0) {
       // Sad - angled rectangles forming frown
-      display.fillRect(mouthX, mouthY, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
-      display.fillRect(mouthX + MOUTH_WIDTH/2 + 1, mouthY + 3, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX, mouthY, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX + MOUTH_WIDTH/2 + 1, mouthY + 3, MOUTH_WIDTH/2 - 1, MOUTH_HEIGHT, 1);
       // Add middle segment for smooth curve
-      display.fillRect(mouthX + MOUTH_WIDTH/2 - 2, mouthY + 1, 4, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX + MOUTH_WIDTH/2 - 2, mouthY + 1, 4, MOUTH_HEIGHT, 1);
     } else {
       // Neutral - straight rectangle (thicker)
-      display.fillRect(mouthX, mouthY, MOUTH_WIDTH, MOUTH_HEIGHT, 1);
+      displayFillRect(mouthX, mouthY, MOUTH_WIDTH, MOUTH_HEIGHT, 1);
     }
   } else {
     // Open mouth - rectangular/square opening (BMO style)
@@ -322,20 +322,20 @@ void bmo_drawMouth() {
     
     if (bmoMouthCurve > 0) {
       // Happy open mouth - wider rectangle with smile shape
-      display.drawRect(mouthX - 2, mouthY - 3, MOUTH_WIDTH + 4, openHeight + 2, 1);
-      display.drawRect(mouthX - 1, mouthY - 2, MOUTH_WIDTH + 2, openHeight, 1);
+      displayDrawRect(mouthX - 2, mouthY - 3, MOUTH_WIDTH + 4, openHeight + 2, 1);
+      displayDrawRect(mouthX - 1, mouthY - 2, MOUTH_WIDTH + 2, openHeight, 1);
       // Fill for emphasis
-      display.fillRect(mouthX + 1, mouthY, MOUTH_WIDTH - 2, openHeight - 4, 1);
+      displayFillRect(mouthX + 1, mouthY, MOUTH_WIDTH - 2, openHeight - 4, 1);
     } else if (bmoMouthCurve < 0) {
       // Sad open mouth
-      display.drawRect(mouthX, mouthY + 2, MOUTH_WIDTH, openHeight, 1);
+      displayDrawRect(mouthX, mouthY + 2, MOUTH_WIDTH, openHeight, 1);
     } else {
       // Normal open mouth - double rectangle for better look
-      display.drawRect(mouthX - 1, mouthY - 1, MOUTH_WIDTH + 2, openHeight + 2, 1);
-      display.drawRect(mouthX, mouthY, MOUTH_WIDTH, openHeight, 1);
+      displayDrawRect(mouthX - 1, mouthY - 1, MOUTH_WIDTH + 2, openHeight + 2, 1);
+      displayDrawRect(mouthX, mouthY, MOUTH_WIDTH, openHeight, 1);
       // Add inner fill for depth
       if (openHeight > 8) {
-        display.fillRect(mouthX + 3, mouthY + 3, MOUTH_WIDTH - 6, openHeight - 6, 1);
+        displayFillRect(mouthX + 3, mouthY + 3, MOUTH_WIDTH - 6, openHeight - 6, 1);
       }
     }
   }

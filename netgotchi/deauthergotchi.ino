@@ -31,16 +31,16 @@ void deauthergotchi_setup()
   #endif
   
   displayClearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0, 5);
-  display.println("DEAUTHERGOTCHI");
-  display.println("");
+  displaySetSize(1);
+  displaySetCursor(0, 5);
+  displayPrintln("DEAUTHERGOTCHI");
+  displayPrintln("");
   #ifdef ESP32
-  display.println("ESP32 Mode");
+  displayPrintln("ESP32 Mode");
   #elif defined(ESP8266)
-  display.println("ESP8266 Mode");
+  displayPrintln("ESP8266 Mode");
   #endif
-  display.display();
+  displayDisplay();
   delay(1000);
 
   
@@ -59,11 +59,11 @@ void deauthergotchi_loop()
     
     if( deauth_showmenu)
    {
-    display.clearDisplay();
-    display.setCursor(0, 5);
-    display.println("DEAUTHERGOTCHI (v_v)");
-    display.println(" ");
-    display.println(deauth_command[deauth_selectedMode]);
+    displayClearDisplay();
+    displaySetCursor(0, 5);
+    displayPrintln("DEAUTHERGOTCHI (v_v)");
+    displayPrintln(" ");
+    displayPrintln(deauth_command[deauth_selectedMode]);
    }
     if( deauth_selectedMode ==0 && once)
    {
@@ -78,7 +78,7 @@ void deauthergotchi_loop()
     deauth_showmenu=false;
    }
 
-  display.display();
+  displayDisplay();
 
   deauth_ButtonLeft.loop();
   deauth_ButtonRight.loop();
@@ -110,33 +110,33 @@ void deauth_BButtonPressed(Button2 &btn) {
 void scanAndDisplayNetworks() {
   int n = WiFi.scanNetworks();
   
-  display.clearDisplay();
+  displayClearDisplay();
   
   if (n == 0) {
-    display.setCursor(0,0);
-    display.println("No networks found");
+    displaySetCursor(0,0);
+    displayPrintln("No networks found");
     Serial.println("No networks found");
-    display.display();
+    displayDisplay();
     return;
   }
 
   int linesPerScreen = SCREEN_HEIGHT / 10; // Calculate how many lines fit on the screen
   for (int start = 0; start < n; start += linesPerScreen) {
-    display.clearDisplay();
+    displayClearDisplay();
     
     for (int i = start; i < start + linesPerScreen && i < n; ++i) {
-      display.setCursor(0, (i - start) * 10);
-      display.print(i + 1);
-      display.print(": ");
-      display.print(WiFi.SSID(i));
+      displaySetCursor(0, (i - start) * 10);
+      displayPrint(String(i + 1));
+      displayPrint(": ");
+      displayPrint(WiFi.SSID(i));
       
     }
     
-    display.display();
+    displayDisplay();
     delay(1000); // Pause to allow reading of the current screen
   }
   
-  display.display();
+  displayDisplay();
 
 }
 
@@ -148,24 +148,24 @@ void scanNetworksAndDeauth() {
     esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
     #endif
     int n = WiFi.scanNetworks();
-    display.clearDisplay();
-    display.setCursor(0,10);
+    displayClearDisplay();
+    displaySetCursor(0,10);
 
-    display.println("Channel :"+String(channel)+" H:"+ String(n) );
-    display.display();
+    displayPrintln("Channel :"+String(channel)+" H:"+ String(n) );
+    displayDisplay();
 
     for (int i = 0; i < n; ++i) {
-      display.setCursor(0,20);
-      display.println("attack running:");
+      displaySetCursor(0,20);
+      displayPrintln("attack running:");
       deauthClients(WiFi.BSSID(i));
       delay(100);
-      display.display();
+      displayDisplay();
     }
-    display.display();
+    displayDisplay();
     delay(1000);
-    display.println("complete!");
+    displayPrintln("complete!");
     delay(1000);
-    display.display();
+    displayDisplay();
   }
 }
 
