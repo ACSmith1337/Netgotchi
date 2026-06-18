@@ -64,10 +64,12 @@ int ledColorState = 0;  // 0=idle, 1=scanning, 2=intrusion, 3=vulnerability, 4=h
 bool ledEnabled = true;
 bool manualMode = false;
 
-// PWM channels (ESP8266 analogWrite auto-maps pins to channels):
-// D5(GPIO14) → channel 6, D6(GPIO12) → channel 4
-const int RED_PWM_CHANNEL = 6;
-const int GREEN_PWM_CHANNEL = 4;
+// PWM frequency — ESP8266 default is 1kHz.
+// WiFi SDK operations can silently corrupt the PWM hardware registers.
+// For solid states: use digitalWrite(HIGH) — true constant 3.3V, immune to PWM corruption.
+// For animations: use analogWrite — PWM breathing/flashing.
+// NEVER mix on the same pin without clearing PWM first.
+#define LED_PWM_FREQ 1000
 
 // ============================================================================
 // LED INITIALIZATION
@@ -77,6 +79,9 @@ void ledsInit() {
   // Configure color pins - common cathode is wired to GND, no GPIO needed
   pinMode(LED_RED_PIN, OUTPUT);
   pinMode(LED_GREEN_PIN, OUTPUT);
+  
+  // Set PWM frequency for animation channels
+  analogWriteFreq(LED_PWM_FREQ);
   
   // Start with both off
   setAllOff();
@@ -145,8 +150,8 @@ void updateLedState() {
 
 void setLedColor() {
   switch (ledColorState) {
-    case 0: // Idle - solid green
-      setGreenOn();
+    case 0: // Idle - solid green (digitalWrite)
+      setGreenSolid();
       break;
     case 1: // Scanning - green breathing (handled in animation)
       setGreenOn();
@@ -157,8 +162,8 @@ void setLedColor() {
     case 3: // Vulnerability - amber pulse (handled in animation)
       setBothOn();  // Amber = both on
       break;
-    case 4: // Honeypot breach - solid red
-      setRedOn();
+    case 4: // Honeypot breach - solid red (digitalWrite)
+      setRedSolid();
       break;
     case 5: // Evil twin - amber flash on/off (handled in animation)
       setBothOn();  // Amber = both on
@@ -167,7 +172,7 @@ void setLedColor() {
       setRedOn();
       break;
     default:
-      setGreenOn();
+      setGreenSolid();
       break;
   }
 }
@@ -295,7 +300,7 @@ void ledsLoop() {
   static bool firstRun = true;
   if (firstRun) {
     firstRun = false;
-    setLedColor();  // Set proper idle color (green)
+    setGreenSolid();  // Idle = solid green, immune to PWM corruption
   }
   
   if (currentMillis - previousLedMillis >= LED_UPDATE_INTERVAL) {
@@ -307,28 +312,28 @@ void ledsLoop() {
   if (manualMode) return;
   
   // Run animation based on state
-  // NOTE: On ESP8266, WiFi/SDK operations can silently corrupt PWM registers.
-  // Solid states (idle, honeypot) must re-apply PWM every cycle to stay lit.
+  // SOLID states use digitalWrite — immune to WiFi SDK PWM corruption.
+  // ANIMATED states use analogWrite — PWM breathing/flashing.
   switch (ledColorState) {
-    case 0: // Idle - solid green, re-apply every cycle
-      setGreenOn();
+    case 0: // Idle - solid green (digitalWrite, no PWM)
+      // digitalWrite is persistent — no need to re-apply every cycle
       break;
-    case 1: // Scanning - breathe green
+    case 1: // Scanning - breathe green (PWM)
       ledsBreathing();
       break;
-    case 2: // Intrusion - flash red on/off
+    case 2: // Intrusion - flash red on/off (PWM)
       ledsFlash();
       break;
-    case 3: // Vulnerability - pulse amber
+    case 3: // Vulnerability - pulse amber (PWM)
       ledsPulse();
       break;
-    case 4: // Honeypot breach - solid red, re-apply every cycle
-      setRedOn();
+    case 4: // Honeypot breach - solid red (digitalWrite, no PWM)
+      // digitalWrite is persistent — no need to re-apply every cycle
       break;
-    case 5: // Evil twin - amber flash on/off
+    case 5: // Evil twin - amber flash on/off (PWM)
       ledsAmberFlash();
       break;
-    case 6: // Disconnected - red slow breathing
+    case 6: // Disconnected - red slow breathing (PWM)
       ledsRedBreathing();
       break;
   }
@@ -369,27 +374,27 @@ String getLedColorName() {
 
 void handleLedCommand(String command) {
   if (command == "on") {
-    setGreenOn();
+    setGreenSolid();
     manualMode = true;
     SerialPrintLn("LED: green ON");
   } else if (command == "off") {
-    setAllOff();
+    setAllSolidOff();
     manualMode = true;
     SerialPrintLn("LED: OFF");
   } else if (command == "red") {
-    setRedOn();
+    setRedSolid();
     manualMode = true;
     SerialPrintLn("LED: RED");
   } else if (command == "green") {
-    setGreenOn();
+    setGreenSolid();
     manualMode = true;
     SerialPrintLn("LED: GREEN");
   } else if (command == "blue") {
-    setBothOn();
+    setBothSolid();
     manualMode = true;
     SerialPrintLn("LED: AMBER (no blue on bi-color)");
   } else if (command == "amber") {
-    setBothOn();
+    setBothSolid();
     manualMode = true;
     SerialPrintLn("LED: AMBER");
   } else if (command == "auto") {
@@ -403,16 +408,54 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// setLedRaw: common cathode wired to GND. Drive color pins HIGH (via analogWrite) to light.
-// Uses analogWrite exclusively - mixing digitalWrite and analogWrite on ESP8266 causes
-// the pin to get stuck in PWM mode (hardware channel conflict).
-// analogWrite(1023) = full 3.3V on. analogWrite(0) = off.
+// ESP8266 PWM channel disable via direct register access.
+// analogWrite/digitalWrite share the same pin mux — they fight for control.
+// Disabling the PWM channel lets digitalWrite take over the pin.
+// D5 (first analogWrite call) → PWM channel 0, D6 (second) → PWM channel 1.
+static uint32_t* const PWM_CTRL_REG = (uint32_t*)0x60000774;
+void pwmDisableChannel(int ch) { *PWM_CTRL_REG &= ~(1 << ch); }
+void pwmEnableChannel(int ch)  { *PWM_CTRL_REG |= (1 << ch); }
+
+// setLedRaw: common cathode wired to GND. Drive color pins via analogWrite (PWM).
+// analogWrite(1023) = ~3.3V on. analogWrite(0) = off.
 void setLedRaw(int redValue, int greenValue) {
   analogWrite(LED_RED_PIN, redValue);
   analogWrite(LED_GREEN_PIN, greenValue);
 }
 
-// Helper: set red/green/both to full brightness, or off
+// Solid-state functions: use digitalWrite(HIGH) for TRUE constant 3.3V.
+// Immune to PWM register corruption from WiFi SDK.
+// Must disable PWM channel first — otherwise PWM and digitalWrite fight for
+// the same pin mux and the output becomes unpredictable.
+void setRedSolid() {
+  pwmDisableChannel(0);  // D5 = PWM channel 0
+  digitalWrite(LED_RED_PIN, HIGH);
+  pwmDisableChannel(1);  // D6 = PWM channel 1
+  digitalWrite(LED_GREEN_PIN, LOW);
+}
+
+void setGreenSolid() {
+  pwmDisableChannel(0);  // D5 = PWM channel 0
+  digitalWrite(LED_RED_PIN, LOW);
+  pwmDisableChannel(1);  // D6 = PWM channel 1
+  digitalWrite(LED_GREEN_PIN, HIGH);
+}
+
+void setBothSolid() {
+  pwmDisableChannel(0);
+  digitalWrite(LED_RED_PIN, HIGH);
+  pwmDisableChannel(1);
+  digitalWrite(LED_GREEN_PIN, HIGH);
+}
+
+void setAllSolidOff() {
+  pwmDisableChannel(0);
+  digitalWrite(LED_RED_PIN, LOW);
+  pwmDisableChannel(1);
+  digitalWrite(LED_GREEN_PIN, LOW);
+}
+
+// Helper: set red/green/both to full PWM brightness, or off
 #define LED_FULL 1023
 #define LED_OFF  0
 
