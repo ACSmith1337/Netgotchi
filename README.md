@@ -4,7 +4,7 @@
 
 A network guardian built for the ESP8266. Periodically scans your WiFi network, detects intrusions, monitors for vulnerabilities, and uses a bi-color LED to show real-time security status at a glance.
 
-Fork of [MXZZ/Netgotchi](https://github.com/MXZZ/Netgotchi). ESP8266 port by [itsOwen](https://github.com/itsOwen).
+Fork of [MXZZ/Netgotchi](https://github.com/MXZZ/Netgotchi).
 
 ## Features
 
@@ -114,4 +114,4 @@ Parse this from your host system to build custom displays or alerts.
 
 GNU General Public License v3.0
 
-Original by [MXZZ](https://github.com/MXZZ) | ESP32 port by [itsOwen](https://github.com/itsOwen)
+Original by [MXZZ](https://github.com/MXZZ)

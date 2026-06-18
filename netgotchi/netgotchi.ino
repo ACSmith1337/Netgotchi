@@ -1,6 +1,5 @@
 // Netgotchi - lives to protect your network!
 // Created by MXZZ https://github.com/MXZZ
-// ESP32 port by itsOwen https://github.com/itsOwen
 // GNU General Public License v3.0
 
 // Include necessary libraries based on the board type
