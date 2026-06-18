@@ -330,8 +330,8 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
     </div>
 
     <footer>
-        <p>Netgotchi by MXZZ | ESP8266 Port</p>
-        <p><a href="https://github.com/MXZZ/Netgotchi/" target="_blank" style="color:#00ff41;text-decoration:none;">GitHub</a></p>
+        <p>Netgotchi v1.68 | Wemos D1 Mini</p>
+        <p><a href="https://github.com/ACSmith1337/Netgotchi/" target="_blank" style="color:#00ff41;text-decoration:none;">GitHub</a></p>
     </footer>
 </div>
     <script>
