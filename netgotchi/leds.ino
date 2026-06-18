@@ -408,10 +408,10 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// ESP8266 v3.x core: TIMER1 NMI waveform generator (NOT old PWM peripheral).
-// stopWaveform(pin) cleanly removes a pin from the waveform state machine.
-// After stopping, digitalWrite gives TRUE constant output — immune to NMI interference.
-// NEVER mix analogWrite and digitalWrite on the same pin without stopping first.
+// Stop PWM before switching to digitalWrite for TRUE constant 3.3V output.
+// analogWrite(pin, 0) stops the PWM signal on that pin — equivalent to
+// stopWaveform(pin) in ESP8266 core v3.x, but works on v2.x as well.
+// After stopping PWM, digitalWrite gives constant output immune to WiFi SDK PWM corruption.
 
 // setLedRaw: common cathode wired to GND. Drive color pins via analogWrite (PWM).
 // analogWrite(1023) = 99.9% PWM duty (NOT constant — still PWM). analogWrite(0) = off via digitalWrite.
@@ -420,33 +420,33 @@ void setLedRaw(int redValue, int greenValue) {
   analogWrite(LED_GREEN_PIN, greenValue);
 }
 
-// Solid-state functions: stop waveform, then digitalWrite for TRUE constant 3.3V.
-// Immune to TIMER1 NMI waveform corruption from WiFi SDK operations.
+// Solid-state functions: stop PWM via analogWrite(0), then digitalWrite for TRUE constant 3.3V.
+// Immune to WiFi SDK PWM corruption. Works on ESP8266 core v2.x and v3.x.
 void setRedSolid() {
-  stopWaveform(LED_RED_PIN);
+  analogWrite(LED_RED_PIN, 0);
   digitalWrite(LED_RED_PIN, HIGH);
-  stopWaveform(LED_GREEN_PIN);
+  analogWrite(LED_GREEN_PIN, 0);
   digitalWrite(LED_GREEN_PIN, LOW);
 }
 
 void setGreenSolid() {
-  stopWaveform(LED_RED_PIN);
+  analogWrite(LED_RED_PIN, 0);
   digitalWrite(LED_RED_PIN, LOW);
-  stopWaveform(LED_GREEN_PIN);
+  analogWrite(LED_GREEN_PIN, 0);
   digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setBothSolid() {
-  stopWaveform(LED_RED_PIN);
+  analogWrite(LED_RED_PIN, 0);
   digitalWrite(LED_RED_PIN, HIGH);
-  stopWaveform(LED_GREEN_PIN);
+  analogWrite(LED_GREEN_PIN, 0);
   digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setAllSolidOff() {
-  stopWaveform(LED_RED_PIN);
+  analogWrite(LED_RED_PIN, 0);
   digitalWrite(LED_RED_PIN, LOW);
-  stopWaveform(LED_GREEN_PIN);
+  analogWrite(LED_GREEN_PIN, 0);
   digitalWrite(LED_GREEN_PIN, LOW);
 }
 
