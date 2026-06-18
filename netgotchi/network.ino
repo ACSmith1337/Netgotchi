@@ -185,7 +185,8 @@ void networkInit()
         json += "\"ip\":\"" + currentIP.toString() + "\",";
         json += "\"ssid\":\"" + WiFi.SSID() + "\",";
         json += "\"version\":\"" + String(VERSION) + "\",";
-        json += "\"freeHeap\":" + String(ESP.getFreeHeap());
+        json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
+        json += "\"heapSize\":" + String(ESP.getHeapSize()) + ",";
         json += "\"cpuLoad\":" + String(cpuLoad / 10.0);
         json += "}";
         server.send(200, "application/json", json);

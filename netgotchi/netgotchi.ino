@@ -33,7 +33,7 @@
 // NOT the reverse. So #ifdef USE_LEDS in this file won't see a define from leds.ino.
 #define USE_LEDS
 
-const float VERSION = 1.66;  // LED + dashboard update
+const float VERSION = 1.67;  // Speed: cache NTP, integer UFO, quiet LED + heapSize
 
 //Oled Screen Selectors
 #define SCREEN_WIDTH 128

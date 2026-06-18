@@ -135,18 +135,41 @@ void updateAndDrawStars() {
   }
 }
 
-// UFO Animation
+// UFO Animation — integer math, no float sin/cos
 void drawUFO() {
   int ufoSize = 8;
+  
+  // Smooth floating motion using integer arithmetic (no sin/cos)
+  // Bounce in a diamond-shaped trajectory around center
+  static int ufoVelX = 3;
+  static int ufoVelY = 2;
+  static unsigned long lastDrift = 0;
+  
+  // Update position every 50ms for smooth motion
+  if (millis() - lastDrift >= 50) {
+    lastDrift = millis();
+    ufoX += ufoVelX;
+    ufoY += ufoVelY;
+    
+    // Bounce at screen edges with margin
+    if (ufoX > SCREEN_WIDTH - 20 || ufoX < 20) ufoVelX = -ufoVelX;
+    if (ufoY > SCREEN_HEIGHT - 12 || ufoY < 12) ufoVelY = -ufoVelY;
+    
+    // Randomly change drift direction every few seconds
+    if (random(100) < 2) {
+      ufoVelX = random(-4, 5);
+      if (ufoVelX == 0) ufoVelX = 1;
+    }
+    if (random(100) < 2) {
+      ufoVelY = random(-3, 4);
+      if (ufoVelY == 0) ufoVelY = 1;
+    }
+  }
   
   // Draw UFO body
   displayDrawLine(ufoX - ufoSize, ufoY, ufoX + ufoSize, ufoY, 1);
   displayDrawLine(ufoX, ufoY - ufoSize / 2, ufoX, ufoY + ufoSize / 2, 1);
   displayDrawCircle(ufoX, ufoY, ufoSize / 2, 1);
-  
-  // Smooth floating motion
-  ufoX = SCREEN_WIDTH / 2 + sin(millis() / 1000.0) * 20;
-  ufoY = SCREEN_HEIGHT / 2 + cos(millis() / 1500.0) * 10;
 }
 
 // Ripple Animation — non-blocking
@@ -170,12 +193,23 @@ void drawRipple() {
 // ============================================================================
 
 void displayTimeAndDate() {
-  timeClient.update();
-  String formattedTime = timeClient.getFormattedTime();
+  // Cache NTP lookup — timeClient.update() blocks on UDP, can stall the loop.
+  // Refresh every 60 seconds, display the cached string between updates.
+  static String cachedTime = "--:--:--";
+  static unsigned long lastNTP = 0;
   
-  // Get date components
-  time_t epochTime = timeClient.getEpochTime();
-  struct tm* ptm = gmtime((time_t*)&epochTime);
+  if (millis() - lastNTP >= 60000) {
+    timeClient.update();
+    cachedTime = timeClient.getFormattedTime();
+    lastNTP = millis();
+  }
+  
+  // Get date components from cached epoch
+  static time_t cachedEpoch = 0;
+  if (millis() - lastNTP >= 60000) {
+    cachedEpoch = timeClient.getEpochTime();
+  }
+  struct tm* ptm = gmtime((time_t*)&cachedEpoch);
   int currentDay = ptm->tm_mday;
   int currentMonth = ptm->tm_mon + 1;
   int currentYear = ptm->tm_year + 1900;
@@ -184,7 +218,7 @@ void displayTimeAndDate() {
   displaySetSize(1);
   displaySetTextColor(1);
   displaySetCursor(5, 0);
-  displayPrint(formattedTime);
+  displayPrint(cachedTime);
   
   // Display date
   displaySetCursor(0, 8);

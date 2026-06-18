@@ -192,7 +192,7 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
 <div class="container">
     <header>
         <h1>NETGOTCHI</h1>
-        <div class="subtitle">NETWORK SECURITY MATRIX v<span id="version">1.66</span></div>
+        <div class="subtitle">NETWORK SECURITY MATRIX v<span id="version">1.67</span></div>
     </header>
 
     <div class="grid-2">
