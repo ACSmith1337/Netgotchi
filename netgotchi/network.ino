@@ -104,6 +104,19 @@ void networkInit()
         server.send(200, "text/plain", "Hour- command received");
     });
 
+    // Manual scan trigger — kicks off immediate network scan
+    server.on("/command/SCAN", HTTP_GET, [](){
+        handleCommand("scan");
+        server.send(200, "text/plain", "Scan initiated");
+    });
+
+    // Scan progress — returns current state and progress counter
+    server.on("/scan/status", HTTP_GET, [](){
+        String json = "{\"state\":\"" + String(scanState == SCAN_SCANNING ? "scanning" : (scanState == SCAN_COMPLETE ? "complete" : "idle"))
+                      + "\",\"progress\":" + String(i) + "/256\"}";
+        server.send(200, "application/json", json);
+    });
+
     // Evil Twin Scan endpoints
     server.on("/eviltwin/status", HTTP_GET, [](){
         String json = "{\"enabled\":" + String(evilTwinScanEnabled ? "true" : "false") + "}";
@@ -437,6 +450,13 @@ void handleCommand(String command) {
       handleButtons(BTN_A);
    } else if (command == "B") {
       handleButtons(BTN_B);
+   } else if (command == "scan") {
+      // Trigger immediate scan — same logic as the interval timer in networkFunctionsLoop()
+      i = 0;
+      scanState = SCAN_SCANNING;
+      newHostDetected = false;
+      for (int j = 0; j < max_ip; j++) previousIPs[j] = ips[j];
+      SerialPrintLn("Manual scan triggered");
    }
 }
 

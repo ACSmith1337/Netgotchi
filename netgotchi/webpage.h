@@ -368,10 +368,35 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
                 .catch(() => {});
         }
         function getHosts() {
-            fetch('/hosts')
-                .then(r => r.text())
-                .then(d => document.getElementById('hosts').innerHTML = d)
-                .catch(() => {});
+            var hostsDiv = document.getElementById('hosts');
+            hostsDiv.innerHTML = 'Scanning network... please wait.';
+            fetch('/command/SCAN')
+                .then(() => {
+                    var attempts = 0;
+                    function poll() {
+                        attempts++;
+                        fetch('/scan/status')
+                            .then(r => r.json())
+                            .then(s => {
+                                if (s.state === 'scanning') {
+                                    hostsDiv.innerHTML = 'Scanning... ' + s.progress;
+                                    if (attempts < 72) setTimeout(poll, 3000);  // 3.6 min max
+                                } else {
+                                    // Scan done — fetch results
+                                    fetch('/hosts')
+                                        .then(r => r.text())
+                                        .then(d => { hostsDiv.innerHTML = d; })
+                                        .catch(() => { hostsDiv.innerHTML = 'Scan completed but failed to load results.'; });
+                                }
+                            })
+                            .catch(() => {
+                                if (attempts < 72) setTimeout(poll, 3000);
+                                else hostsDiv.innerHTML = 'Scan status check failed.';
+                            });
+                    }
+                    setTimeout(poll, 3000);  // Start polling after 3s
+                })
+                .catch(() => { hostsDiv.innerHTML = 'Could not start scan.'; });
         }
         function getHeadlessStatus() {
             fetch('/headless')
