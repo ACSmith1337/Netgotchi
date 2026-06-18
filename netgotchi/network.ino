@@ -187,7 +187,8 @@ void networkInit()
         json += "\"version\":\"" + String(VERSION) + "\",";
         json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
 #if defined(ESP8266)
-        json += "\"heapSize\":" + String(ESP.getHeapStats().total_size) + ",";
+        { uint32_t freeH = 0, totalH = 0; ESP.getHeapStats(&freeH, &totalH, nullptr);
+          json += "\"heapSize\":" + String(totalH) + ","; }
 #else
         json += "\"heapSize\":" + String(ESP.getHeapSize()) + ",";
 #endif
