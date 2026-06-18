@@ -141,7 +141,7 @@ void updateLedState() {
   // Priority order: most critical first
   // Each state has a DISTINCT visual pattern:
   //   0 = green solid          (normal/idle)
-  //   1 = green breathing      (scanning in progress)
+  //   1 = green flash          (scanning in progress)
   //   2 = red fast flash       (intrusion - new host detected)
   //   3 = amber pulse          (vulnerabilities found)
   //   4 = red solid            (honeypot breached)
@@ -175,7 +175,7 @@ void setLedColor() {
     case 0: // Idle - solid green (digitalWrite)
       setGreenSolid();
       break;
-    case 1: // Scanning - green breathing (handled in animation)
+    case 1: // Scanning - green flashing (handled in animation)
       setGreenOn();
       break;
     case 2: // Intrusion - red flashing (handled in animation)
@@ -292,6 +292,22 @@ void ledsStrobe() {
   }
 }
 
+void ledsGreenFlash() {
+  static bool flashOn = true;
+  static unsigned long flashStart = 0;
+  
+  unsigned long now = millis();
+  if (now - flashStart >= 300) {  // Medium-speed green flash
+    flashStart = now;
+    flashOn = !flashOn;
+    if (flashOn) {
+      setGreenOn();
+    } else {
+      setAllOff();
+    }
+  }
+}
+
 void ledsAmberFlash() {
   static bool flashOn = true;
   static unsigned long flashStart = 0;
@@ -340,8 +356,8 @@ void ledsLoop() {
     case 0: // Idle - solid green (digitalWrite, no PWM)
       // digitalWrite is persistent — no need to re-apply every cycle
       break;
-    case 1: // Scanning - breathe green (PWM)
-      ledsBreathing();
+    case 1: // Scanning - flash green on/off (PWM)
+      ledsGreenFlash();
       break;
     case 2: // Intrusion - flash red on/off (PWM)
       ledsFlash();
