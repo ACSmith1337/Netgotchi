@@ -184,7 +184,7 @@ void setLedColor() {
 void ledsBreathing() {
   static unsigned long breathStart = 0;
   static bool breathUp = true;
-  static int brightness = LED_BRIGHTNESS;
+  static int brightness = 0;
   
   unsigned long now = millis();
   if (now - breathStart >= 50) {
@@ -194,7 +194,7 @@ void ledsBreathing() {
       if (brightness >= 1023) breathUp = false;
     } else {
       brightness -= 3;
-      if (brightness <= LED_BRIGHTNESS) breathUp = true;
+      if (brightness <= 0) breathUp = true;
     }
     setLedRaw(0, brightness);  // Green breathing
   }
@@ -203,7 +203,7 @@ void ledsBreathing() {
 void ledsRedBreathing() {
   static unsigned long breathStart = 0;
   static bool breathUp = true;
-  static int brightness = LED_BRIGHTNESS;
+  static int brightness = 0;
   
   unsigned long now = millis();
   if (now - breathStart >= 80) {  // Slower than green breathing
@@ -213,7 +213,7 @@ void ledsRedBreathing() {
       if (brightness >= 1023) breathUp = false;
     } else {
       brightness -= 2;
-      if (brightness <= LED_BRIGHTNESS) breathUp = true;
+      if (brightness <= 0) breathUp = true;
     }
     setLedRaw(brightness, 0);  // Red breathing
   }
@@ -238,7 +238,7 @@ void ledsFlash() {
 void ledsPulse() {
   static unsigned long pulseStart = 0;
   static bool pulseUp = true;
-  static int intensity = LED_BRIGHTNESS;
+  static int intensity = 0;
   
   unsigned long now = millis();
   if (now - pulseStart >= 30) {
@@ -248,7 +248,7 @@ void ledsPulse() {
       if (intensity >= 1023) pulseUp = false;
     } else {
       intensity -= 5;
-      if (intensity <= LED_BRIGHTNESS) pulseUp = true;
+      if (intensity <= 0) pulseUp = true;
     }
     setLedRaw(intensity, intensity);  // Both on = amber
   }
@@ -414,7 +414,7 @@ void handleLedCommand(String command) {
 // NEVER mix analogWrite and digitalWrite on the same pin without stopping first.
 
 // setLedRaw: common cathode wired to GND. Drive color pins via analogWrite (PWM).
-// analogWrite(1023) = ~3.3V on. analogWrite(0) = off.
+// analogWrite(1023) = 99.9% PWM duty (NOT constant — still PWM). analogWrite(0) = off via digitalWrite.
 void setLedRaw(int redValue, int greenValue) {
   analogWrite(LED_RED_PIN, redValue);
   analogWrite(LED_GREEN_PIN, greenValue);
