@@ -308,7 +308,7 @@ void ledsLoop() {
     firstRun = false;
     // Re-init PWM frequency and force full brightness on both channels
     analogWriteFreq(1000);
-    setLedRaw(LED_FULL, LED_FULL);
+    setLedRaw(1023, 1023);
     delay(50);
     setLedColor();
     Serial.println("[LED] First loop - re-initialized PWM");
