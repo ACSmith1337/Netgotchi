@@ -186,7 +186,11 @@ void networkInit()
         json += "\"ssid\":\"" + WiFi.SSID() + "\",";
         json += "\"version\":\"" + String(VERSION) + "\",";
         json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
+#if defined(ESP8266)
+        json += "\"heapSize\":" + String(ESP.getHeapStats().total_size) + ",";
+#else
         json += "\"heapSize\":" + String(ESP.getHeapSize()) + ",";
+#endif
         json += "\"cpuLoad\":" + String(cpuLoad / 10.0);
         json += "}";
         server.send(200, "application/json", json);
