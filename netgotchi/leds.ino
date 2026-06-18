@@ -298,32 +298,15 @@ void ledsAmberFlash() {
 void ledsLoop() {
   unsigned long currentMillis = millis();
   
-  // Force LED refresh on first call. Between boot animation and first
-  // ledsLoop() call, display.begin() and WiFi.begin() can silently corrupt
-  // the ESP8266 PWM duty cycles. We recover by:
-  // 1. Turn both pins OFF (clears corrupted duty cycle state)
-  // 2. Brief delay to let hardware settle
-  // 3. Turn green ON explicitly (green is the default idle color)
-  // 4. Turn both OFF again (clean slate)
-  // 5. Set the proper color
-  // NOTE: Do NOT call analogWriteFreq() here — it resets ALL PWM channels
-  // to 0 and the ESP8266 PWM hardware does not reliably recover when the
-  // frequency is unchanged from the default. The boot animation works because
-  // it uses the default PWM without touching analogWriteFreq.
+  // First run: force LED color after all init is done.
+  // Between boot animation and first ledsLoop(), display.begin() may have
+  // touched I2C pins. Ensure the LED PWM duty cycle is set.
+  // NOTE: D5/D6 are LED pins only — I2C uses D1/D2. Never share these pins.
   static bool firstRun = true;
   if (firstRun) {
     firstRun = false;
-    // Force clean PWM state by cycling pins
-    analogWrite(LED_RED_PIN, 0);
-    analogWrite(LED_GREEN_PIN, 0);
-    delay(10);
-    analogWrite(LED_GREEN_PIN, 1023);  // Force green channel alive
-    delay(10);
-    analogWrite(LED_GREEN_PIN, 0);
-    analogWrite(LED_RED_PIN, 0);
-    delay(10);
     setLedColor();  // Set proper idle color (green)
-    Serial.println("[LED] First loop - restored PWM duty cycles");
+    Serial.println("[LED] First loop - setting idle color");
   }
   
   if (currentMillis - previousLedMillis >= LED_UPDATE_INTERVAL) {

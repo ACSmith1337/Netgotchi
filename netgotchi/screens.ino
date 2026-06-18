@@ -12,9 +12,11 @@ void displayInit() {
   
   // Initialize SSD1306 OLED display
   if (oled_type_ssd1306) {
-    // Specify your pins if needed (e.g., for D1 Mini)
+    // Use D1/D2 for I2C (standard Wemos D1 Mini pins).
+    // DO NOT use D5/D6 — those pins are reserved for the bi-color LED
+    // and sharing them with I2C kills the LED PWM output.
     if (screenWireParams) {
-      Wire.begin(D5, D6);
+      Wire.begin(D2, D1);  // SDA=D2(GPIO4), SCL=D1(GPIO5)
     }
     
     if (!display.begin(2, 0x3C)) {
