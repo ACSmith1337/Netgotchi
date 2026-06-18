@@ -408,13 +408,10 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// ESP8266 PWM channel disable via direct register access.
-// analogWrite/digitalWrite share the same pin mux — they fight for control.
-// Disabling the PWM channel lets digitalWrite take over the pin.
-// D5 (first analogWrite call) → PWM channel 0, D6 (second) → PWM channel 1.
-static uint32_t* const PWM_CTRL_REG = (uint32_t*)0x60000774;
-void pwmDisableChannel(int ch) { *PWM_CTRL_REG &= ~(1 << ch); }
-void pwmEnableChannel(int ch)  { *PWM_CTRL_REG |= (1 << ch); }
+// ESP8266 v3.x core: TIMER1 NMI waveform generator (NOT old PWM peripheral).
+// stopWaveform(pin) cleanly removes a pin from the waveform state machine.
+// After stopping, digitalWrite gives TRUE constant output — immune to NMI interference.
+// NEVER mix analogWrite and digitalWrite on the same pin without stopping first.
 
 // setLedRaw: common cathode wired to GND. Drive color pins via analogWrite (PWM).
 // analogWrite(1023) = ~3.3V on. analogWrite(0) = off.
@@ -423,35 +420,33 @@ void setLedRaw(int redValue, int greenValue) {
   analogWrite(LED_GREEN_PIN, greenValue);
 }
 
-// Solid-state functions: use digitalWrite(HIGH) for TRUE constant 3.3V.
-// Immune to PWM register corruption from WiFi SDK.
-// Must disable PWM channel first — otherwise PWM and digitalWrite fight for
-// the same pin mux and the output becomes unpredictable.
+// Solid-state functions: stop waveform, then digitalWrite for TRUE constant 3.3V.
+// Immune to TIMER1 NMI waveform corruption from WiFi SDK operations.
 void setRedSolid() {
-  pwmDisableChannel(0);  // D5 = PWM channel 0
+  stopWaveform(LED_RED_PIN);
   digitalWrite(LED_RED_PIN, HIGH);
-  pwmDisableChannel(1);  // D6 = PWM channel 1
+  stopWaveform(LED_GREEN_PIN);
   digitalWrite(LED_GREEN_PIN, LOW);
 }
 
 void setGreenSolid() {
-  pwmDisableChannel(0);  // D5 = PWM channel 0
+  stopWaveform(LED_RED_PIN);
   digitalWrite(LED_RED_PIN, LOW);
-  pwmDisableChannel(1);  // D6 = PWM channel 1
+  stopWaveform(LED_GREEN_PIN);
   digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setBothSolid() {
-  pwmDisableChannel(0);
+  stopWaveform(LED_RED_PIN);
   digitalWrite(LED_RED_PIN, HIGH);
-  pwmDisableChannel(1);
+  stopWaveform(LED_GREEN_PIN);
   digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setAllSolidOff() {
-  pwmDisableChannel(0);
+  stopWaveform(LED_RED_PIN);
   digitalWrite(LED_RED_PIN, LOW);
-  pwmDisableChannel(1);
+  stopWaveform(LED_GREEN_PIN);
   digitalWrite(LED_GREEN_PIN, LOW);
 }
 
