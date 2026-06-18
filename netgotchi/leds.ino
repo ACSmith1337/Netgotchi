@@ -307,7 +307,12 @@ void ledsLoop() {
   if (manualMode) return;
   
   // Run animation based on state
+  // NOTE: On ESP8266, WiFi/SDK operations can silently corrupt PWM registers.
+  // Solid states (idle, honeypot) must re-apply PWM every cycle to stay lit.
   switch (ledColorState) {
+    case 0: // Idle - solid green, re-apply every cycle
+      setGreenOn();
+      break;
     case 1: // Scanning - breathe green
       ledsBreathing();
       break;
@@ -317,13 +322,15 @@ void ledsLoop() {
     case 3: // Vulnerability - pulse amber
       ledsPulse();
       break;
+    case 4: // Honeypot breach - solid red, re-apply every cycle
+      setRedOn();
+      break;
     case 5: // Evil twin - amber flash on/off
       ledsAmberFlash();
       break;
     case 6: // Disconnected - red slow breathing
       ledsRedBreathing();
       break;
-    // Cases 0 (idle), 4 (honeypot): solid colors, no animation
   }
 }
 
