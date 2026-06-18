@@ -93,17 +93,39 @@ void ledsInit() {
 }
 
 void bootAnimation() {
-  // Flash red, green, amber, off
-  setRedOn();
-  delay(300);
-  setGreenOn();
-  delay(300);
-  setBothOn();  // Amber
-  delay(300);
-  setAllOff();
+  // Green breathing in
+  for (int b = 0; b <= 1023; b += 64) {
+    setLedRaw(0, b);
+    delay(25);
+  }
+  // Green breathing out
+  for (int b = 1023; b >= 0; b -= 64) {
+    setLedRaw(0, b);
+    delay(25);
+  }
+  delay(100);
+
+  // Red flash x3
+  for (int f = 0; f < 3; f++) {
+    setRedOn();
+    delay(150);
+    setAllOff();
+    delay(150);
+  }
+
+  // Amber pulse up
+  for (int p = 0; p <= 1023; p += 64) {
+    setLedRaw(p, p);
+    delay(25);
+  }
+  // Amber pulse down
+  for (int p = 1023; p >= 0; p -= 64) {
+    setLedRaw(p, p);
+    delay(25);
+  }
+
   delay(200);
-  
-  // Start in idle state (green)
+  // Settle to idle state (green solid)
   setLedColor();
 }
 
@@ -408,46 +430,51 @@ void handleLedCommand(String command) {
 // LOW-LEVEL LED CONTROL
 // ============================================================================
 
-// Stop PWM before switching to digitalWrite for TRUE constant 3.3V output.
-// analogWrite(pin, 0) stops the PWM signal on that pin — equivalent to
-// stopWaveform(pin) in ESP8266 core v3.x, but works on v2.x as well.
-// After stopping PWM, digitalWrite gives constant output immune to WiFi SDK PWM corruption.
-
 // setLedRaw: common cathode wired to GND. Drive color pins via analogWrite (PWM).
 // analogWrite(1023) = 99.9% PWM duty (NOT constant — still PWM). analogWrite(0) = off via digitalWrite.
 void setLedRaw(int redValue, int greenValue) {
-  analogWrite(LED_RED_PIN, redValue);
-  analogWrite(LED_GREEN_PIN, greenValue);
+    analogWrite(LED_RED_PIN, redValue);
+    analogWrite(LED_GREEN_PIN, greenValue);
 }
 
-// Solid-state functions: stop PWM via analogWrite(0), then digitalWrite for TRUE constant 3.3V.
+// ESP8266 v2.x: after analogWrite sets PWM on a pin, the GPIO mux routes to PWM.
+// analogWrite(0) writes the GPIO register but does NOT re-route the mux back to GPIO.
+// So digitalWrite after analogWrite(0) has no effect on the actual pin output.
+// pinMode(OUTPUT) explicitly re-routes the mux. Must call before digitalWrite
+// when transitioning from PWM animation to solid digital state.
+void ledStopPwm(uint8_t pin) {
+    analogWrite(pin, 0);
+    pinMode(pin, OUTPUT);  // Re-route GPIO mux from PWM → digital
+}
+
+// Solid-state functions: stop PWM, re-route mux, then digitalWrite for TRUE constant 3.3V.
 // Immune to WiFi SDK PWM corruption. Works on ESP8266 core v2.x and v3.x.
 void setRedSolid() {
-  analogWrite(LED_RED_PIN, 0);
-  digitalWrite(LED_RED_PIN, HIGH);
-  analogWrite(LED_GREEN_PIN, 0);
-  digitalWrite(LED_GREEN_PIN, LOW);
+    ledStopPwm(LED_RED_PIN);
+    digitalWrite(LED_RED_PIN, HIGH);
+    ledStopPwm(LED_GREEN_PIN);
+    digitalWrite(LED_GREEN_PIN, LOW);
 }
 
 void setGreenSolid() {
-  analogWrite(LED_RED_PIN, 0);
-  digitalWrite(LED_RED_PIN, LOW);
-  analogWrite(LED_GREEN_PIN, 0);
-  digitalWrite(LED_GREEN_PIN, HIGH);
+    ledStopPwm(LED_RED_PIN);
+    digitalWrite(LED_RED_PIN, LOW);
+    ledStopPwm(LED_GREEN_PIN);
+    digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setBothSolid() {
-  analogWrite(LED_RED_PIN, 0);
-  digitalWrite(LED_RED_PIN, HIGH);
-  analogWrite(LED_GREEN_PIN, 0);
-  digitalWrite(LED_GREEN_PIN, HIGH);
+    ledStopPwm(LED_RED_PIN);
+    digitalWrite(LED_RED_PIN, HIGH);
+    ledStopPwm(LED_GREEN_PIN);
+    digitalWrite(LED_GREEN_PIN, HIGH);
 }
 
 void setAllSolidOff() {
-  analogWrite(LED_RED_PIN, 0);
-  digitalWrite(LED_RED_PIN, LOW);
-  analogWrite(LED_GREEN_PIN, 0);
-  digitalWrite(LED_GREEN_PIN, LOW);
+    ledStopPwm(LED_RED_PIN);
+    digitalWrite(LED_RED_PIN, LOW);
+    ledStopPwm(LED_GREEN_PIN);
+    digitalWrite(LED_GREEN_PIN, LOW);
 }
 
 // Helper: set red/green/both to full PWM brightness, or off
