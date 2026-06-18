@@ -192,7 +192,7 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
 <div class="container">
     <header>
         <h1>NETGOTCHI</h1>
-        <div class="subtitle">NETWORK SECURITY MATRIX v<span id="version">1.67</span></div>
+        <div class="subtitle">NETWORK SECURITY MATRIX v<span id="version">1.68</span></div>
     </header>
 
     <div class="grid-2">
@@ -312,7 +312,7 @@ static const char PROGMEM pagehtml[] = R"rawliteral(
         <div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(0,255,65,0.2);">
             <span style="font-size:11px;color:#888;display:block;margin-bottom:6px;">LED LEGEND:</span>
             <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0f0;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #0f0;"></span>Idle</span><span style="font-size:10px;color:#666;">Normal</span></div>
-            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0f0;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #0f0;opacity:0.5;"></span>Scanning</span><span style="font-size:10px;color:#666;">Breathing</span></div>
+            <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0f0;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #0f0;opacity:0.5;"></span>Scanning</span><span style="font-size:10px;color:#666;">Flash</span></div>
             <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f00;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #f00;"></span>Intrusion</span><span style="font-size:10px;color:#666;">Flash</span></div>
             <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffa500;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #ffa500;"></span>Vulnerability</span><span style="font-size:10px;color:#666;">Pulse</span></div>
             <div class="status-row" style="padding:4px 8px;"><span class="status-label"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f00;vertical-align:middle;margin-right:6px;box-shadow:0 0 5px #f00;"></span>Honeypot Breach</span><span style="font-size:10px;color:#666;">Solid</span></div>

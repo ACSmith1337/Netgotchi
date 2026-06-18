@@ -1,164 +1,117 @@
-# 🛡️ Netgotchi
+# Netgotchi
 
-![Netgotchi Image](https://github.com/MXZZ/Netgotchi/assets/3322271/947416e6-c088-4167-ba62-e69a6d1170ce)
+> Network security monitor for ESP8266. Ping scan, vulnerability detection, evil twin alerting, honeypot, and LED status indicator.
 
-> Netgotchi: Your network's loyal guardian! 🐾
+A network guardian built for the ESP8266. Periodically scans your WiFi network, detects intrusions, monitors for vulnerabilities, and uses a bi-color LED to show real-time security status at a glance.
 
-A small arduino .ino script with some great functions to detect intruders or breaches in the network, it pings periodically the network and reports if any new device. It also has a rudimental "Honeypot" functionality with a rudimental exposed service, once someone reaches the honeypot it will trigger an alarm. Please contribute to the repository via pull requests!
+Fork of [MXZZ/Netgotchi](https://github.com/MXZZ/Netgotchi). ESP8266 port by [itsOwen](https://github.com/itsOwen).
 
-Tested with Nmap, service scan / intense scan will trigger the alert.
+## Features
 
-## 🌟 Features
+- Periodic network scanning (every 6 min, configurable)
+- Intrusion detection -- alerts when a new host appears on the network
+- Vulnerability scanning -- checks 8 common services (Telnet, FTP, SSH, VNC, RDP, SMB, HTTP, HTTPS)
+- Evil twin detection -- monitors for APs spoofing your network SSID
+- FTP honeypot -- triggers alarm when accessed
+- Bi-color LED status indicator (red/green) with distinct patterns per state
+- OLED display with animated screens (starfield, UFO, ripple)
+- Headless serial output (for cyberdeck integration)
+- Web dashboard -- real-time status, LED control, host list
 
-- 🔍 Periodic network scanning
-- 🍯 Built-in "Honeypot" functionality
-- 🚨 Intrusion detection and alerting
-- 🖥️ Support for multiple OLED display types
-- 🔄 Supports both ESP8266 and ESP32
+## Hardware
 
-![Netgotchi Screen 1](https://github.com/MXZZ/Netgotchi/assets/3322271/cf8d7fec-7b33-4f14-9992-8cb4806633f2) ![Netgotchi Screen 2](https://github.com/MXZZ/Netgotchi/assets/3322271/68f4fe6c-9172-422b-ba39-ee901c098840)
+- Wemos D1 Mini (ESP8266) or any ESP8266 board
+- 0.96" OLED display (SSD1306, SH1106, or SSD1305)
+- Bi-color LED (common cathode, red + green)
+- Optional: buttons for navigation (D7, D6, D2, D3)
 
-## 🛒 Get an Official Build and support the development ❤ 
+### Wiring
 
-Support the development by getting an official Netgotchi build:
+OLED: I2C on D1 (SCL) and D2 (SDA). Standard Wemos D1 Mini pins.
 
-- [Tindie](https://www.tindie.com/products/ollestore/negotchi-network-security-scanner/)
-- [Etsy](https://olleadventures.etsy.com/listing/1752764124)
+Bi-color LED (common cathode):
+- Leg 1 -> D5 (red control, HIGH = on)
+- Leg 2 -> GND (common cathode)
+- Leg 3 -> D6 (green control, HIGH = on)
 
-## New!
-![Netgotchi CARD](https://www.tindie.com/products/ollestore/netgotchi-card-7mm-business-card-size/)
- 
- ![immagine](https://github.com/user-attachments/assets/420866cf-a5f5-4996-8471-86070394fe3f)
+## LED Status Patterns
 
+The bi-color LED shows seven distinct states using solid, flash, and pulse patterns:
 
+| State | Color | Pattern | Meaning |
+|-------|-------|---------|---------|
+| Idle | Green | Solid | Normal operation |
+| Scanning | Green | Flash | Network scan in progress |
+| Intrusion | Red | Flash | New host detected on network |
+| Vulnerability | Amber | Pulse | Vulnerable services found |
+| Honeypot Breach | Red | Solid | Honeypot was accessed |
+| Evil Twin AP | Amber | Flash | Rogue AP detected |
+| Disconnected | Red | Slow breathe | WiFi disconnected |
 
-### Note : for security purpose make sure you buying from from official the link above, you will receive the latest version of this repository, without any modification.  
+The LED is fully automatic but can be manually overridden via the web dashboard (green, red, amber, off, or auto).
 
-PRO version & Prototypes 
+## Web Dashboard
 
+Visit the device IP address on port 80 from any browser on the same network. The dashboard provides:
 
-![IMG_20240829_1519522](https://github.com/user-attachments/assets/b584b5f6-9727-46fc-9bce-9cad7c8529e4)
+- **Display** -- live pixel-level mirror of the OLED screen
+- **Controls** -- remote button presses (navigate screens, toggle pins, adjust time)
+- **System Status** -- WiFi RSSI, uptime, IP, SSID, CPU load, free heap, relay pin state
+- **Security** -- honeypot status, evil twin scan toggle, host count, vulnerability count
+- **LED Status** -- real-time LED color and state, manual override buttons, full LED legend
+- **Network Hosts** -- on-demand scan and display of all discovered hosts
 
-Netgotchi Pro version :
-Pro version has a keypad to access the settings, change mode like chat-device ( TEXTgotchi )  or gpio remote controller ( CTRLgotchi ) , from the device itself without re-flashing settings and a small buzzer for sound alerts!
-- [Netgotchi PRO on Tindie](https://www.tindie.com/products/35655/)
-- [Netgotchi PRO on Etsy](https://olleadventures.etsy.com/listing/1771783598)
-  
+All panels refresh automatically. Mobile-friendly responsive design.
 
+## Setup
 
-## 🛠️ Requirements
+1. Open the `.ino` file in Arduino IDE. Make sure all tabs are open.
+2. Select your OLED display type by setting the appropriate flag to 1 (default: `#define oled_type_ssd1306 1`)
+3. Install required libraries (see below)
+4. Select your board (ESP8266) in Arduino IDE
+5. Flash the code
+6. On first boot, Netgotchi creates an AutoConnectAP hotspot for WiFi setup
+7. Once connected, it starts monitoring
 
-- ESP8266 or ESP32
-- OLED display (SSD1306, SH1106, or SSD1305)
-- USB cable
-- Optional: 3D printed case ([Community case for Wemos D1](https://www.printables.com/model/510481-terminal-for-ssd1306-096-oled-and-wemos-d1-mini))
+## Libraries
 
-## 📊 Wiring Diagram
-ESP8266
-![Netgotchi Diagram](https://github.com/MXZZ/Netgotchi/assets/3322271/54fb9be5-4fe4-4ff3-b24a-f2a05287d893)
-ESP32
-![esp32](https://github.com/user-attachments/assets/cc486dfd-fdb6-468b-a158-2e0a78891ac4)
-
-
-## 📚 Libraries
-
-- ESP8266/ESP32 core libraries
-- Modified FTP Server library (ESP8266FtpServer or ESP32FtpServer) -- you need to install the one provided in the "/libraries" folder in this repo
+- ESP8266 core
+- ESP8266FtpServer (modified -- use the version in /libraries folder)
 - Adafruit_GFX
-- Adafruit_SSD1306, Adafruit_SH110X, or Adafruit_SSD1305 (based on your OLED type)
+- Adafruit_SSD1306 (or SH110X / SSD1305 for your display)
 - ESPping
 - NTPClient
 - WiFiManager
 - Button2
 
-## 🚀 How to Use
+Install via Arduino Library Manager, except ESP8266FtpServer which must be the modified version included in this repo.
 
-1. Open the `.ino` file in the Arduino IDE, make sure you have all files open like the image below :
-   ![immagine](https://github.com/user-attachments/assets/552f5d19-d55d-4d47-9ef4-f200438421e6)
+## Configuration
 
-2. Select your OLED display type by setting the appropriate flag to 1 (e.g., `#define oled_type_ssd1306 1`).![immagine](https://github.com/user-attachments/assets/c1fef59b-e22a-4555-94cb-8ef26b71e756)
+Key settings in `netgotchi.ino`:
 
-3. Install the required libraries via the Arduino Library Manager.
-4. Select your board (ESP8266 or ESP32) in the Arduino IDE.
-5. Flash the code to your board.
-6. On the first boot, Netgotchi will create a WiFi hotspot named "AutoConnectAP" for you to set up your WiFi credentials.
-7. Once connected, Netgotchi will start guarding your network!
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `intervalScan` | 6 min | How often to scan the network |
+| `alertTimeout` | 3 min | How long alerts remain active after scan |
+| `securityScanActive` | true | Enable/disable vulnerability scanning |
+| `evilTwinScanEnabled` | true | Enable/disable evil twin detection |
+| `webInterface` | true | Enable/disable web dashboard |
+| `headless` | true | Enable/disable serial status output |
+| `debug` | true | Enable/disable debug Serial output |
 
-Netgotchi Pro configuration :
- 
-![immagine](https://github.com/user-attachments/assets/8470aba4-9c47-469d-80bb-6da349b01436)
+## Headless Mode
 
+For cyberdeck integration, serial output provides real-time status:
 
-## 🖥️ Headless Mode (for Cyberdecks)
+```
+^_^ Honeypot:OK EvilTwin:OK Host-Found:5 Vulnerabilities:2
+```
 
-![Headless Mode](https://github.com/MXZZ/Netgotchi/assets/3322271/f12ba979-5936-4bee-9d36-eba67ddebf59)
+Parse this from your host system to build custom displays or alerts.
 
-1. Open `utils/cyberdeck/pyserial_cyberdeck.py`
-2. Change the COM port on line 5 (e.g., `/dev/ttyUSB0` for Linux, `COMx` for Windows)
-3. Run the script
-
-## 🔎 Vulnerability Scanning
-
-Netgotchi scans for potentially vulnerable services including:
-- Telnet (23)
-- FTP (21)
-- SSH (22)
-- VNC (5900)
-- RDP (3389)
-- SMB (445)
-- HTTP (80)
-- HTTPS (443)
-
-Vulnerable hosts are marked with "WRNG!". This feature can be toggled with the `securityScanActive` flag.
-
-## 🖥️ Web Interface ( v.1.4 update)
-Visit your netgotchi ip address at the port :80 ( the IP will be visible on the screen once connected )
-![netgotchi222](https://github.com/user-attachments/assets/e5473956-e858-45dd-8c93-b7030d33723e)
-
-## How to flash ( webmode - easy mode ) 
-- Connect your ESP8266 or ESP32 or Netgotchi via USB cable ( Data cable)
-- Use Chrome to go https://espressif.github.io/esptool-js/ 
-- Press "Connect" 
-- Press "Add File" , select Netgotchi.ino.bin ( Find it in "Release")
-- Press "Flash" 
-- Restart your Netgotchi , Enjoy!
-- example on esp8266: ![immagine](https://github.com/user-attachments/assets/51d1c45c-c422-4309-88b7-64186d67d0df)
-
-## Status and animations explained 
-
-- 1st Page  
-top left corner : date and time  
-top right corner : honeypot status ("ok" or if there is an attack it will appear as "breached")  
-botton left corner : how many devices are active in the wifi network  
-bottom center : number of VU ( vulnerabilities ) found  
-bottom right corner : status - idle /scan  
-center : netgotchi face and animations, the netgotchi will start crying ( T_T ) if there was an attack and it will display the attacker ip address. Netgotchi will display an "evil twin face" if someone cloned your wifi for an evil attack "( e_t )".  
-
-- 2nd Page : 
-active devices - UP for recently active, DOWN recently disconnected , WNR warning if they have a vulnerability
-
-- 3rd Page : 
-Network speed and network integrity ( ping, average speed, connection status )
-
-- 4th Page :
-Netgotchi IP and uptime 
-
-- Extra:
-Pro only : move page and setting menu on left button / right button  
-V2 and Pro only : audio alarm on attack  
- 
-## 😊 Join us on Discord
-
-Discord Server: [Join Now](https://discord.gg/hM4w8eTKrt)!
-
-## 🤝 Contributing
-
-We welcome contributions! Please submit your pull requests to help make Netgotchi even better.
-
-Join our [Reddit community](https://www.reddit.com/r/Netgotchi/)!
-
-## 📜 License
+## License
 
 GNU General Public License v3.0
 
-Created with ❤️ by MG [MXZZ](https://github.com/MXZZ) | ESP32 Port Created by [itsOwen](https://github.com/itsOwen)
+Original by [MXZZ](https://github.com/MXZZ) | ESP32 port by [itsOwen](https://github.com/itsOwen)
